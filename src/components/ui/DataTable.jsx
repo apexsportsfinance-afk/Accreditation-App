@@ -65,31 +65,31 @@ export default function DataTable({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3", className)}>
       {searchable && (
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-400" />
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-800/70 border border-cyan-700/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 text-lg"
+            className="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700/60 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/60 focus:border-cyan-600 transition-all"
           />
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-cyan-800/40 shadow-lg shadow-black/30">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-xl border border-slate-700/50 shadow-2xl shadow-black/40">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gradient-to-r from-slate-800/90 via-slate-800/80 to-slate-800/90 border-b border-cyan-700/40">
+            <tr className="bg-slate-800/95 border-b border-slate-700/60">
               {selectable && (
-                <th className="w-12 px-4 py-3.5">
+                <th className="w-10 px-4 py-3">
                   <input
                     type="checkbox"
                     checked={filteredData.length > 0 && selectedRows.length === filteredData.length}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-cyan-500 focus:ring-cyan-500/50"
+                    className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500/40"
                   />
                 </th>
               )}
@@ -97,29 +97,29 @@ export default function DataTable({
                 <th
                   key={column.key}
                   className={cn(
-                    "px-4 py-3.5 text-left text-lg font-bold text-cyan-300 tracking-wide uppercase",
-                    column.sortable && "cursor-pointer select-none hover:text-white transition-colors"
+                    "px-4 py-3 text-left text-xs font-bold text-cyan-400 tracking-widest uppercase",
+                    column.sortable && "cursor-pointer select-none hover:text-cyan-200 transition-colors"
                   )}
                   onClick={() => column.sortable && handleSort(column.key)}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     {column.header}
                     {column.sortable && sortConfig.key === column.key && (
                       sortConfig.direction === "asc" ?
-                        <ChevronUp className="w-4 h-4 text-cyan-400" /> :
-                        <ChevronDown className="w-4 h-4 text-cyan-400" />
+                        <ChevronUp className="w-3 h-3 text-cyan-400" /> :
+                        <ChevronDown className="w-3 h-3 text-cyan-400" />
                     )}
                   </div>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/50">
+          <tbody className="divide-y divide-slate-700/40">
             {filteredData.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length + (selectable ? 1 : 0)}
-                  className="px-4 py-12 text-center text-slate-400 text-lg"
+                  className="px-4 py-10 text-center text-slate-500 text-sm"
                 >
                   {emptyMessage}
                 </td>
@@ -128,28 +128,28 @@ export default function DataTable({
               filteredData.map((row, index) => (
                 <motion.tr
                   key={row.id || index}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.02 }}
                   className={cn(
-                    "bg-slate-900/40 hover:bg-slate-700/50 transition-all duration-200",
+                    "bg-slate-900/50 hover:bg-slate-800/70 transition-all duration-150",
                     onRowClick && "cursor-pointer",
-                    selectedRows.includes(row.id) && "bg-cyan-500/10 border-l-2 border-l-cyan-500"
+                    selectedRows.includes(row.id) && "bg-cyan-900/20 border-l-2 border-l-cyan-500"
                   )}
                   onClick={() => onRowClick?.(row)}
                 >
                   {selectable && (
-                    <td className="w-12 px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                    <td className="w-10 px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedRows.includes(row.id)}
                         onChange={() => handleSelectRow(row.id)}
-                        className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-cyan-500 focus:ring-cyan-500/50"
+                        className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500/40"
                       />
                     </td>
                   )}
                   {columns.map((column) => (
-                    <td key={column.key} className="px-4 py-3.5 text-lg text-slate-100">
+                    <td key={column.key} className="px-4 py-3 text-sm text-slate-200">
                       {column.render ? column.render(row) : row[column.key]}
                     </td>
                   ))}
@@ -160,7 +160,7 @@ export default function DataTable({
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-lg text-slate-300">
+      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
         <span>Showing {filteredData.length} of {data.length} entries</span>
         {selectable && selectedRows.length > 0 && (
           <span className="text-cyan-400 font-medium">{selectedRows.length} selected</span>
