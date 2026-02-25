@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   Plus, Users as UsersIcon, Shield,
-  Calendar, Eye, Edit, Trash2, UserCheck, Loader2
+  Calendar, Eye, Edit, Trash2, Loader2
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -55,18 +55,13 @@ export default function Users() {
   const [deleteModal, setDeleteModal] = useState({ open: false, user: null });
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "event_admin"
+    name: "", email: "", password: "", role: "event_admin"
   });
   const [formErrors, setFormErrors] = useState({});
   const { user: currentUser, isSuperAdmin } = useAuth();
   const toast = useToast();
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
+  useEffect(() => { loadUsers(); }, []);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -114,21 +109,18 @@ export default function Users() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     setSaving(true);
     try {
       if (editingUser) {
         const updates = { name: formData.name, email: formData.email, role: formData.role };
         if (formData.password) updates.password = formData.password;
-        await UsersAPI.update(editingUser.id, updates);
-        toast.success("User updated successfully");} else {
+        await UsersAPI.update(editingUser.id, updates);toast.success("User updated successfully");} else {
         await UsersAPI.create(formData);
         toast.success(`User created! ${formData.name} can now log in.`);
       }
       handleCloseModal();
       loadUsers();
     } catch (err) {
-      console.error("Save user error:", err);
       toast.error(err.message || "Failed to save user");
     } finally {
       setSaving(false);
@@ -156,11 +148,10 @@ export default function Users() {
       header: "User",
       sortable: true,
       render: (row) => {
-        const config = ROLE_CONFIG[row.role] || ROLE_CONFIG.viewer;
         const initials = row.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
         return (
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center flex-shrink-0 shadow-md">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center flex-shrink-0">
               <span className="text-xs font-bold text-white">{initials}</span>
             </div>
             <div>
@@ -221,7 +212,8 @@ export default function Users() {
         <div className="flex items-center gap-1">
           <button
             onClick={(e) => { e.stopPropagation(); handleOpenModal(row); }}
-            className="p-1.5 rounded-lg hover:bg-cyan-500/20 transition-colors"title="Edit user"
+            className="p-1.5 rounded-lg hover:bg-cyan-500/20 transition-colors"
+            title="Edit user"
           >
             <Edit className="w-3.5 h-3.5 text-cyan-400" />
           </button>
@@ -254,8 +246,8 @@ export default function Users() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">User Management</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-xl font-bold text-white mb-0.5">User Management</h1>
+          <p className="text-xs text-slate-400">
             Manage system users and their access permissions
           </p>
         </div>
@@ -264,30 +256,29 @@ export default function Users() {
         </Button>
       </div>
 
-      {/* Role Access Summary Cards */}
+      {/* Role Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {Object.entries(ROLE_CONFIG).map(([key, config]) => {
           const Icon = config.icon;
           const count = users.filter(u => u.role === key).length;
           return (
-            <div key={key} className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0">
-                <Icon className={`w-5 h-5 ${config.iconColor}`} />
+            <div key={key} className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0">
+                <Icon className={`w-4 h-4 ${config.iconColor}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">{config.label}</p>
                 <p className="text-xs text-slate-400">{config.access.length} permissions</p>
-              </div>
-              <span className="text-2xl font-bold text-white">{count}</span>
+              </div><span className="text-xl font-bold text-white">{count}</span>
             </div>
           );
         })}
       </div>
 
-      {/* Users Table */}
+      {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+          <Loader2 className="w-7 h-7 text-cyan-500 animate-spin" />
         </div>
       ) : users.length === 0 ? (
         <EmptyState
@@ -314,10 +305,11 @@ export default function Users() {
         title={editingUser ? "Edit User" : "Add New User"}
       >
         <form onSubmit={handleSubmit} noValidate className="p-5 space-y-4">
-          {/* Role access preview */}
           {formData.role && (
             <div className="bg-slate-800/60 border border-slate-700/40 rounded-lg p-3">
-              <p className="text-xs font-medium text-slate-400 mb-2">Access permissions for this role:</p>
+              <p className="text-xs font-medium text-slate-400 mb-2">
+                Access permissions for this role:
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {ROLE_CONFIG[formData.role]?.access.map((item) => (
                   <span key={item} className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
@@ -336,7 +328,6 @@ export default function Users() {
             error={formErrors.name}
             required
           />
-
           <Input
             label="Email Address"
             type="email"
@@ -346,7 +337,6 @@ export default function Users() {
             error={formErrors.email}
             required
           />
-
           <Input
             label={editingUser ? "New Password (leave blank to keep)" : "Password"}
             type="password"
@@ -356,7 +346,6 @@ export default function Users() {
             error={formErrors.password}
             required={!editingUser}
           />
-
           <Select
             label="Role & Access Level"
             value={formData.role}
@@ -375,7 +364,7 @@ export default function Users() {
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Modal */}
       <Modal
         isOpen={deleteModal.open}
         onClose={() => setDeleteModal({ open: false, user: null })}
@@ -386,7 +375,7 @@ export default function Users() {
             <p className="text-sm text-red-300">
               Are you sure you want to delete{" "}
               <span className="font-bold text-white">{deleteModal.user?.name}</span>?
-              They will immediately lose all access to the system.
+              They will immediately lose all access.
             </p>
           </div>
           <div className="flex gap-3">
