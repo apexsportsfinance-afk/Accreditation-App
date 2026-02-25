@@ -16,26 +16,45 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Fetch role from user_roles table
+  const fetchUserRole = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .single();
+      if (error || !data) return "event_admin";
+      return data.role;
+    } catch {
+      return "event_admin";
+    }
+  };
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        // ✅ Get role from user_roles table
+        const role = await fetchUserRole(session.user.id);
         setUser({
           id: session.user.id,
           email: session.user.email,
           name: session.user.user_metadata?.name || session.user.email,
-          role: session.user.user_metadata?.role || "event_admin"
+          role
         });
       }
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        // ✅ Get role from user_roles table
+        const role = await fetchUserRole(session.user.id);
         setUser({
           id: session.user.id,
           email: session.user.email,
           name: session.user.user_metadata?.name || session.user.email,
-          role: session.user.user_metadata?.role || "event_admin"
+          role
         });
       } else {
         setUser(null);
@@ -56,6 +75,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await UsersAPI.logout();
+    setUser(null);
   };
 
   const hasPermission = (permission) => {
