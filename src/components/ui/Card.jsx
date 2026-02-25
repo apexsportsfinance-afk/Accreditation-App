@@ -2,17 +2,17 @@ import React from "react";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 
-function Card({ 
-  children, 
-  className, 
+function Card({
+  children,
+  className,
   hover = false,
-  ...props 
+  ...props
 }) {
   const Component = hover ? motion.div : "div";
   return (
     <Component
       className={cn(
-        "bg-gradient-to-br from-swim-deep/80 via-primary-950/60 to-ocean-950/50 border border-primary-500/20 rounded-xl backdrop-blur-xl shadow-xl shadow-primary-900/30",
+        "bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 border border-cyan-700/30 rounded-xl backdrop-blur-xl shadow-xl shadow-black/40",
         className
       )}
       {...(hover && {
@@ -28,7 +28,10 @@ function Card({
 
 function CardHeader({ children, className }) {
   return (
-    <div className={cn("px-6 py-4 border-b border-primary-500/20 bg-gradient-to-r from-primary-900/20 to-transparent", className)}>
+    <div className={cn(
+      "px-6 py-4 border-b border-cyan-700/30 bg-gradient-to-r from-slate-800/60 to-transparent",
+      className
+    )}>
       {children}
     </div>
   );
@@ -44,7 +47,10 @@ function CardContent({ children, className }) {
 
 function CardFooter({ children, className }) {
   return (
-    <div className={cn("px-6 py-4 border-t border-primary-500/20 bg-gradient-to-r from-transparent to-primary-900/20", className)}>
+    <div className={cn(
+      "px-6 py-4 border-t border-cyan-700/30 bg-gradient-to-r from-transparent to-slate-800/60",
+      className
+    )}>
       {children}
     </div>
   );
