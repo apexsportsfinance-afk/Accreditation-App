@@ -12,12 +12,12 @@ function Card({
   return (
     <Component
       className={cn(
-        "bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 border border-cyan-700/30 rounded-xl backdrop-blur-xl shadow-xl shadow-black/40",
+        "bg-slate-900/80 border border-slate-700/50 rounded-xl backdrop-blur-sm shadow-xl shadow-black/30",
         className
       )}
       {...(hover && {
-        whileHover: { scale: 1.02, borderColor: "rgba(0, 188, 212, 0.5)" },
-        transition: { duration: 0.2 }
+        whileHover: { scale: 1.01, borderColor: "rgba(6, 182, 212, 0.4)" },
+        transition: { duration: 0.15 }
       })}
       {...props}
     >
@@ -29,7 +29,7 @@ function Card({
 function CardHeader({ children, className }) {
   return (
     <div className={cn(
-      "px-6 py-4 border-b border-cyan-700/30 bg-gradient-to-r from-slate-800/60 to-transparent",
+      "px-5 py-4 border-b border-slate-700/50 bg-slate-800/40",
       className
     )}>
       {children}
@@ -39,7 +39,7 @@ function CardHeader({ children, className }) {
 
 function CardContent({ children, className }) {
   return (
-    <div className={cn("p-6", className)}>
+    <div className={cn("p-5", className)}>
       {children}
     </div>
   );
@@ -48,7 +48,7 @@ function CardContent({ children, className }) {
 function CardFooter({ children, className }) {
   return (
     <div className={cn(
-      "px-6 py-4 border-t border-cyan-700/30 bg-gradient-to-r from-transparent to-slate-800/60",
+      "px-5 py-4 border-t border-slate-700/50 bg-slate-800/20",
       className
     )}>
       {children}
