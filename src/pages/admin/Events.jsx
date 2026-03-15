@@ -49,9 +49,9 @@ const DOCUMENT_OPTIONS = [
 ];
 
 const COLOR_PRESETS = [
-  "#2563eb", "#7c3aed", "#0d9488", "#d97706", "#e11d48",
-  "#475569", "#b45309", "#059669", "#dc2626", "#1d4ed8",
-  "#6d28d9", "#0369a1", "#047857", "#b91c1c", "#0891b2"
+  "#0ea5e9", "#0284c7", "#0369a1", "#06b6d4", "#0891b2",
+  "#0e7490", "#3b82f6", "#2563eb", "#1d4ed8", "#6366f1",
+  "#4f46e5", "#3730a3", "#14b8a6", "#0d9488", "#0f766e"
 ];
 
 const toProperCase = (str) => {
@@ -1505,21 +1505,21 @@ function TemplateView({ event, onClose, onSave }) {
 
               <div>
                 <label className="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Sponsor Logos (Max 6)</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {templateData.sponsorLogos.map((logo, i) => (
-                    <div key={i} className="relative group aspect-video bg-white/5 rounded-lg flex items-center justify-center p-2 border border-white/5">
-                      <img src={logo} className="max-w-full max-h-full object-contain" alt="Sponsor" />
+                    <div key={i} className="relative group h-24 bg-white rounded-xl flex items-center justify-center p-3 border border-slate-200 shadow-sm transition-shadow hover:shadow-md">
+                      <img src={logo} className="w-full h-full object-contain" alt="Sponsor" />
                       <button 
                          onClick={() => setTemplateData(prev => ({ ...prev, sponsorLogos: prev.sponsorLogos.filter((_, idx) => idx !== i) }))}
-                         className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                         className="absolute -top-2 -right-2 p-1.5 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
                   ))}
                   {templateData.sponsorLogos.length < 6 && (
-                    <label className="aspect-video border-2 border-dashed border-slate-800 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-slate-600 transition-all text-slate-600">
-                      <Plus className="w-5 h-5" />
+                    <label className="h-24 border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-cyan-500 hover:bg-cyan-500/10 transition-all text-slate-400 bg-slate-800/30">
+                      <Plus className="w-6 h-6 mb-1 text-slate-400" />
                       <input type="file" accept="image/*" onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {

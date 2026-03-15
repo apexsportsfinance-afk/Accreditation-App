@@ -67,9 +67,41 @@ export const EventsAPI = {
     return data ? mapEventFromDB(data) : null;
   },
   getBySlug: async (slug) => {
-    const data = await handleResponse(
+    let data = await handleResponse(
       supabase.from("events").select("*").eq("slug", slug).single()
     ).catch(() => null);
+    
+    if (!data) {
+      data = await handleResponse(
+        supabase.from("events").select("*").ilike("slug", slug).single()
+      ).catch(() => null);
+    }
+
+    const decodedSlug = decodeURIComponent(slug);
+    if (!data && slug !== decodedSlug) {
+      data = await handleResponse(
+        supabase.from("events").select("*").eq("slug", decodedSlug).single()
+      ).catch(() => null);
+      if (!data) {
+        data = await handleResponse(
+          supabase.from("events").select("*").ilike("slug", decodedSlug).single()
+        ).catch(() => null);
+      }
+    }
+
+    if (!data) {
+      data = await handleResponse(
+        supabase.from("events").select("*").ilike("name", decodedSlug).single()
+      ).catch(() => null);
+    }
+    
+    if (!data && decodedSlug.includes(" ")) {
+      const hyphenSlug = decodedSlug.replace(/\s+/g, '-');
+      data = await handleResponse(
+        supabase.from("events").select("*").ilike("slug", hyphenSlug).single()
+      ).catch(() => null);
+    }
+
     return data ? mapEventFromDB(data) : null;
   },
   create: async (event) => {

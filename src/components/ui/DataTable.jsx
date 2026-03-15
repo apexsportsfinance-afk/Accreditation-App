@@ -1,8 +1,14 @@
 import React, { useState, useMemo, useCallback, useRef, memo } from "react";
 import { ChevronUp, ChevronDown, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 
 const ROWS_PER_PAGE_OPTIONS = [25, 50, 100, 200, 500];
+
+const tableRowVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
+};
 
 const TableRow = memo(function TableRow({ row, columns, selectable, selectedRows, onSelectRow, onRowClick }) {
   const isSelected = selectedRows.includes(row.id);
@@ -17,9 +23,10 @@ const TableRow = memo(function TableRow({ row, columns, selectable, selectedRows
   }, [row, onRowClick]);
 
   return (
-    <tr
+    <motion.tr
+      variants={tableRowVariants}
       className={cn(
-        "bg-slate-900/50 hover:bg-slate-800/70 transition-colors duration-100",
+        "bg-slate-900/50 even:bg-slate-800/20 hover:bg-slate-800/70 transition-colors duration-200 ease-out",
         onRowClick && "cursor-pointer",
         isSelected && "bg-cyan-900/20 border-l-2 border-l-cyan-500"
       )}
@@ -40,7 +47,7 @@ const TableRow = memo(function TableRow({ row, columns, selectable, selectedRows
           {column.render ? column.render(row) : row[column.key]}
         </td>
       ))}
-    </tr>
+    </motion.tr>
   );
 });
 
@@ -55,6 +62,7 @@ export default function DataTable({
   onRowClick,
   emptyMessage = "No data available",
   className,
+  isLoading = false,
   pageSize: initialPageSize = 50
 }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -236,8 +244,30 @@ export default function DataTable({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/40">
-            {paginatedData.length === 0 ? (
+          <motion.tbody 
+            className="divide-y divide-slate-700/40"
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.03 }
+              }
+            }}
+          >
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={idx} className="animate-pulse bg-slate-900/50 even:bg-slate-800/20">
+                  {selectable && <td className="px-4 py-3"><div className="w-4 h-4 rounded bg-slate-700"></div></td>}
+                  {columns.map((c, cIdx) => (
+                    <td key={cIdx} className="px-4 py-4">
+                      <div className="h-4 bg-slate-700 rounded w-3/4"></div>
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : paginatedData.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length + (selectable ? 1 : 0)}
@@ -259,7 +289,7 @@ export default function DataTable({
                 />
               ))
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
 

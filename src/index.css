@@ -6,6 +6,7 @@
 
 :root {
   --font-sans: 'Nunito', sans-serif;
+  --space-base: 0.5rem;
 }
 
 * {
@@ -23,6 +24,51 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #0a0f1e;
   color: white;
+}
+
+button, .card, a, input, select {
+  transition: all 0.2s ease-out;
+}
+
+.layout-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print, nav, header, aside, #admin_sidebar {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .qr-print-preview {
+    border: 1px dashed #ccc !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    background: white !important;
+    padding: 10px;
+  }
+  /* Optional dashed line for cutting */
+  .cut-here-line {
+    border-top: 1px dashed #000;
+    margin: 20px 0;
+    text-align: center;
+    position: relative;
+  }
+  .cut-here-line::after {
+    content: "✂ Cut here";
+    position: absolute;
+    top: -10px;
+    background: white;
+    padding: 0 10px;
+    font-size: 10px;
+    color: #000;
+  }
 }
 
 /* Custom scrollbar */
@@ -43,7 +89,7 @@ body {
 
 /* Focus styles */
 :focus-visible {
-  outline: 2px solid rgba(6, 182, 212, 0.5);
+  outline: 2px solid rgba(6, 182, 212, 0.8);
   outline-offset: 2px;
 }
 

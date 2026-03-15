@@ -41,7 +41,7 @@ const waitForQRInElement = (element, timeoutMs = 8000) =>
  * Capture a visible DOM element using html2canvas.
  * Uses cloneNode to avoid detaching the live React element.
  */
-const captureElement = async (elementId, scale = 3.125) => {
+const captureElement = async (elementId, scale = 3) => {
   const element = document.getElementById(elementId);
   if (!element) throw new Error(`Element #${elementId} not found`);
 
@@ -103,9 +103,9 @@ const captureElement = async (elementId, scale = 3.125) => {
   return { canvas, width: actualWidth, height: actualHeight };
 };
 
-export const downloadCapturedPDF = async (frontId, backId, fileName, sizeKey = "card") => {
+  export const downloadCapturedPDF = async (frontId, backId, fileName, sizeKey = "card") => {
   try {
-    const { canvas: frontCanvas, width, height } = await captureElement(frontId, 3.125);
+    const { canvas: frontCanvas, width, height } = await captureElement(frontId, 3);
     const pdfWidth = width;
     const pdfHeight = height;
 
@@ -113,28 +113,28 @@ export const downloadCapturedPDF = async (frontId, backId, fileName, sizeKey = "
       orientation: pdfWidth > pdfHeight ? "l" : "p",
       unit: "pt",
       format: [pdfWidth, pdfHeight],
-      compress: false,
+      compress: true,
       putOnlyUsedFonts: true,
       floatPrecision: 16
     });
 
     pdf.addImage(
-      frontCanvas.toDataURL("image/png"),
+      frontCanvas.toDataURL("image/png", 1.0),
       "PNG",
       0, 0, pdfWidth, pdfHeight,
       undefined,
-      "NONE"
+      "MEDIUM"
     );
 
     if (backId) {
-      const { canvas: backCanvas, width: bw, height: bh } = await captureElement(backId, 3.125);
+      const { canvas: backCanvas, width: bw, height: bh } = await captureElement(backId, 3);
       pdf.addPage([bw, bh]);
       pdf.addImage(
-        backCanvas.toDataURL("image/png"),
+        backCanvas.toDataURL("image/png", 1.0),
         "PNG",
         0, 0, bw, bh,
         undefined,
-        "NONE"
+        "MEDIUM"
       );
     }
 
@@ -146,41 +146,42 @@ export const downloadCapturedPDF = async (frontId, backId, fileName, sizeKey = "
 };
 
 export const openCapturedPDFInTab = async (frontId, backId, sizeKey = "card") => {
-  const { canvas, width, height } = await captureElement(frontId, 3.125);
+  const { canvas, width, height } = await captureElement(frontId, 3);
 
   const pdf = new jsPDF({
     orientation: width > height ? "l" : "p",
     unit: "pt",
-    format: [width, height]
+    format: [width, height],
+    compress: true
   });
 
-  pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, width, height);
+  pdf.addImage(canvas.toDataURL("image/png", 1.0), "PNG", 0, 0, width, height, undefined, "MEDIUM");
 
   if (backId) {
-    const { canvas: bc, width: bw, height: bh } = await captureElement(backId, 3.125);
+    const { canvas: bc, width: bw, height: bh } = await captureElement(backId, 3);
     pdf.addPage([bw, bh]);
-    pdf.addImage(bc.toDataURL("image/png"), "PNG", 0, 0, bw, bh);
+    pdf.addImage(bc.toDataURL("image/png", 1.0), "PNG", 0, 0, bw, bh, undefined, "MEDIUM");
   }
 
   window.open(pdf.output("bloburl"), "_blank");
 };
 
 export const getCapturedPDFBlob = async (frontId, backId, sizeKey = "card") => {
-  const { canvas, width, height } = await captureElement(frontId, 3.125);
+  const { canvas, width, height } = await captureElement(frontId, 3);
 
   const pdf = new jsPDF({
     orientation: width > height ? "l" : "p",
     unit: "pt",
     format: [width, height],
-    compress: false
+    compress: true
   });
 
-  pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, width, height);
+  pdf.addImage(canvas.toDataURL("image/png", 1.0), "PNG", 0, 0, width, height, undefined, "MEDIUM");
 
   if (backId) {
-    const { canvas: bc, width: bw, height: bh } = await captureElement(backId, 3.125);
+    const { canvas: bc, width: bw, height: bh } = await captureElement(backId, 3);
     pdf.addPage([bw, bh]);
-    pdf.addImage(bc.toDataURL("image/png"), "PNG", 0, 0, bw, bh);
+    pdf.addImage(bc.toDataURL("image/png", 1.0), "PNG", 0, 0, bw, bh, undefined, "MEDIUM");
   }
 
   return pdf.output("blob");

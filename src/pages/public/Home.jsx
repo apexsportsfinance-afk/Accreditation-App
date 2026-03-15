@@ -58,9 +58,8 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 relative overflow-hidden">
-                  <Waves className="w-6 h-6 text-white relative z-10" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-blue-600/50 to-transparent" />
+                <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(14,165,233,0.2)]">
+                  <Waves className="w-5 h-5 text-primary-400" />
                 </div>
                 <span className="text-xl font-bold text-white tracking-wide">
                   ApexAccreditation
@@ -127,14 +126,14 @@ export default function Home() {
                   Handle participant registration, document verification, badge generation,
                   and zone-based access control all in one place.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
                   <Link to="/register/swimming-2025">
-                    <Button size="lg" icon={ArrowRight} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-xl shadow-cyan-500/30 text-white font-bold text-lg px-8">
+                    <Button size="lg" icon={ArrowRight} className="bg-primary-500 hover:bg-primary-600 shadow-[0_0_20px_rgba(14,165,233,0.3)] text-white font-bold text-lg px-8 py-3 rounded-xl border border-primary-400/50">
                       Register Now
                     </Button>
                   </Link>
                   <Link to="/login">
-                    <Button variant="outline" size="lg" className="border-2 border-white/50 text-white bg-white/10 hover:bg-white/20 font-bold text-lg px-8 backdrop-blur-sm">
+                    <Button variant="outline" size="lg" className="border-slate-700 hover:border-primary-500/50 text-white bg-slate-800/50 hover:bg-primary-500/10 font-bold text-lg px-8 py-3 rounded-xl backdrop-blur-sm transition-all shadow-[0_0_15px_rgba(0,0,0,0.2)]">
                       Access Dashboard
                     </Button>
                   </Link>
@@ -149,22 +148,22 @@ export default function Home() {
               >
                 <div className="max-w-2xl mx-auto bg-slate-900/60 backdrop-blur-lg rounded-2xl p-8 border border-cyan-400/30 shadow-2xl shadow-black/30">
                   <div className="flex justify-center gap-8 items-center">
-                    <div className="text-center">
-                      <Award className="w-12 h-12 text-cyan-400 mx-auto mb-2 drop-shadow-lg" />
-                      <p className="text-2xl font-bold text-white">500+</p>
-                      <p className="text-lg text-cyan-300/80 font-medium">Events Managed</p>
+                    <div className="text-center group">
+                      <Award className="w-10 h-10 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                      <p className="text-2xl font-black text-white tracking-widest">500+</p>
+                      <p className="text-sm uppercase font-bold tracking-widest text-slate-400">Events Managed</p>
                     </div>
-                    <div className="w-px h-16 bg-cyan-400/30" />
-                    <div className="text-center">
-                      <Users className="w-12 h-12 text-sky-400 mx-auto mb-2 drop-shadow-lg" />
-                      <p className="text-2xl font-bold text-white">50K+</p>
-                      <p className="text-lg text-cyan-300/80 font-medium">Athletes Registered</p>
+                    <div className="w-px h-16 bg-slate-800" />
+                    <div className="text-center group">
+                      <Users className="w-10 h-10 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                      <p className="text-2xl font-black text-white tracking-widest">50K+</p>
+                      <p className="text-sm uppercase font-bold tracking-widest text-slate-400">Athletes Registered</p>
                     </div>
-                    <div className="w-px h-16 bg-cyan-400/30" />
-                    <div className="text-center">
-                      <Timer className="w-12 h-12 text-blue-400 mx-auto mb-2 drop-shadow-lg" />
-                      <p className="text-2xl font-bold text-white">5 min</p>
-                      <p className="text-lg text-cyan-300/80 font-medium">Avg. Processing</p>
+                    <div className="w-px h-16 bg-slate-800" />
+                    <div className="text-center group">
+                      <Timer className="w-10 h-10 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                      <p className="text-2xl font-black text-white tracking-widest">5 MIN</p>
+                      <p className="text-sm uppercase font-bold tracking-widest text-slate-400">Avg. Processing</p>
                     </div>
                   </div>
                 </div>
@@ -200,8 +199,8 @@ export default function Home() {
                     transition={{ delay: index * 0.1 }}
                     className="bg-slate-800/90 backdrop-blur-lg border border-cyan-500/20 rounded-xl p-6 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10 group hover:-translate-y-1"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mb-4 border border-cyan-500/30 group-hover:from-cyan-500/30 group-hover:to-blue-500/30 transition-all duration-300">
-                      <feature.icon className="w-6 h-6 text-cyan-400" />
+                    <div className="w-12 h-12 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center mb-5 group-hover:bg-primary-500/20 transition-colors shadow-[0_0_15px_rgba(14,165,233,0.1)]">
+                      <feature.icon className="w-6 h-6 text-primary-400" />
                     </div>
                     <h3 className="text-lg font-bold text-white mb-2">
                       {feature.title}
@@ -253,31 +252,31 @@ export default function Home() {
                   className="bg-slate-800/90 backdrop-blur-lg border border-cyan-500/20 rounded-2xl p-8 shadow-2xl shadow-black/30"
                 >
                   <div className="space-y-6">
-                    <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-700/40 border border-slate-600/30">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30">
-                        <Waves className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/40 border border-slate-800">
+                      <div className="w-12 h-12 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center shadow-[0_0_15px_rgba(14,165,233,0.1)] flex-shrink-0">
+                        <Waves className="w-5 h-5 text-primary-400" />
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-white">Super Admin</p>
-                        <p className="text-lg text-cyan-400 font-semibold">Full Access</p>
+                        <p className="text-lg font-bold text-white uppercase tracking-wider">Super Admin</p>
+                        <p className="text-sm font-semibold text-primary-400 uppercase tracking-widest mt-0.5">Full Access</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-700/40 border border-slate-600/30">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                        <Calendar className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/40 border border-slate-800">
+                      <div className="w-12 h-12 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center shadow-[0_0_15px_rgba(14,165,233,0.1)] flex-shrink-0">
+                        <Calendar className="w-5 h-5 text-primary-400" />
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-white">Event Admin</p>
-                        <p className="text-lg text-cyan-400 font-semibold">Event Management</p>
+                        <p className="text-lg font-bold text-white uppercase tracking-wider">Event Admin</p>
+                        <p className="text-sm font-semibold text-primary-400 uppercase tracking-widest mt-0.5">Event Management</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-700/40 border border-slate-600/30">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center shadow-lg shadow-slate-500/30">
-                        <Users className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/40 border border-slate-800">
+                      <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center shadow-lg flex-shrink-0">
+                        <Users className="w-5 h-5 text-slate-400" />
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-white">Viewer</p>
-                        <p className="text-lg text-cyan-400 font-semibold">Read Only</p>
+                        <p className="text-lg font-bold text-white uppercase tracking-wider">Viewer</p>
+                        <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mt-0.5">Read Only</p>
                       </div>
                     </div>
                   </div>

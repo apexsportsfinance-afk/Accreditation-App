@@ -8,6 +8,7 @@ import {
   Download,
   CheckCircle,
   XCircle,
+  Clock,
   Eye,
   Trash2,
   Loader2,
@@ -682,9 +683,17 @@ export default function Accreditations() {
       key: "status",
       header: "Status",
       sortable: true,
-      render: (row) => (
-        <Badge className={getStatusColor(row.status)}>{row.status}</Badge>
-      )
+      render: (row) => {
+        const Icon = row.status === "approved" ? CheckCircle 
+                   : row.status === "rejected" ? XCircle 
+                   : Clock;
+        return (
+          <Badge className={`flex items-center gap-1.5 w-fit ${getStatusColor(row.status)}`}>
+            <Icon className="w-3.5 h-3.5" />
+            {row.status}
+          </Badge>
+        );
+      }
     },
     {
       key: "expiresAt",
