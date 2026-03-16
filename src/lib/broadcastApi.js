@@ -284,6 +284,18 @@ export const BroadcastV2API = {
     return true;
   },
 
+  // Update a broadcast message
+  update: async (id, message) => {
+    const { data, error } = await supabase
+      .from("broadcasts_v2")
+      .update({ message })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapBroadcastFromDB(data);
+  },
+
   // Get all broadcasts (for admin panel history)
   getAll: async () => {
     const { data, error } = await supabase

@@ -37,11 +37,12 @@ import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 import EmptyState from "../../components/ui/EmptyState";
-import { useToast } from "../../components/ui/Toast";
-import { EventsAPI, AccreditationsAPI, EventCategoriesAPI, CategoriesAPI } from "../../lib/storage";
-import { GlobalSettingsAPI } from "../../lib/broadcastApi";
 import { formatDate, fileToBase64 } from "../../lib/utils";
+import { generateClubExports } from "../../lib/exportUtils";
 import AttendanceSheet from "../../components/attendance/AttendanceSheet";
+import AttendanceStats from "../../components/accreditation/AttendanceStats";
+import AttendanceBadge from "../../components/accreditation/AttendanceBadge";
+import ExportModal from "../../components/ui/ExportModal";
 const DOCUMENT_OPTIONS = [
   { id: "picture", label: "Picture" },
   { id: "passport", label: "Passport" },
@@ -1609,11 +1610,13 @@ function TemplateView({ event, onClose, onSave }) {
 function ClubsAnalyticsView({ event }) {
   const [clubs, setClubs] = useState([]);
   const [accreditations, setAccreditations] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [parsing, setParsing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [uploadedFile, setUploadedFile] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -1623,9 +1626,10 @@ function ClubsAnalyticsView({ event }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [clubsData, accs] = await Promise.all([
+      const [clubsData, accs, attendanceData] = await Promise.all([
         GlobalSettingsAPI.getClubs(event.id),
-        AccreditationsAPI.getByEventId(event.id)
+        AccreditationsAPI.getByEventId(event.id),
+        AttendanceAPI.getEventAttendance(event.id)
       ]);
       
       setClubs(clubsData);
@@ -1637,6 +1641,7 @@ function ClubsAnalyticsView({ event }) {
       }
       
       setAccreditations(accs || []);
+      setAttendanceRecords(attendanceData || []);
     } catch (err) {
       console.error("Failed to load clubs analytics", err);
     } finally {
@@ -1801,6 +1806,18 @@ function ClubsAnalyticsView({ event }) {
       // Approved Athlete Accreditations
       const approvedAthletes = registeredAthletes.filter(a => a.status === "approved");
       
+      // Calculate Attendance
+      const clubAttendance = attendanceRecords.filter(record => 
+        clubAccs.some(acc => acc.id === record.athlete_id)
+      );
+      
+      // Get latest check-in time for the badge display
+      let latestTime = null;
+      if (clubAttendance.length > 0) {
+        const latestRecord = [...clubAttendance].sort((a, b) => new Date(b.check_in_date) - new Date(a.check_in_date))[0];
+        latestTime = new Date(latestRecord.check_in_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
       return {
         sr: index + 1,
         short: clubShort,
@@ -1808,7 +1825,9 @@ function ClubsAnalyticsView({ event }) {
         registered: registeredAthletes.length,
         fileRegistered: fileRegistered,
         approved: approvedAthletes.length,
-        approvedNames: approvedAthletes.map(a => `${a.firstName || ""} ${a.lastName || ""}`.trim()).join(", ")
+        approvedNames: approvedAthletes.map(a => `${a.firstName || ""} ${a.lastName || ""}`.trim()).join(", "),
+        attendanceCount: clubAttendance.length,
+        latestTime: latestTime
       };
     }).filter(r => r.full !== "Unknown Club");
 
@@ -1821,7 +1840,8 @@ function ClubsAnalyticsView({ event }) {
     );
   }, [clubs, accreditations, searchTerm]);
 
-  const handleExport = () => {
+  const handleOldExportData = () => {
+    // Legacy Basic Export: Keeping exact functionality intact for the basic summary
     if (analytics.length === 0) return;
     const exportData = analytics.map(r => ({
       "SR#": r.sr,
@@ -1837,7 +1857,19 @@ function ClubsAnalyticsView({ event }) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Club Analytics");
     XLSX.writeFile(wb, `${event.name.replace(/\s+/g, '_')}_Club_Analytics.xlsx`);
-    toast.success("Exported successfully");
+    toast.success("Summary Exported");
+  };
+
+  const executeExport = async (selectedClubObjects, format, setProgressMsg) => {
+    try {
+      // Map to just full names
+      const clubNames = selectedClubObjects.map(c => c.full);
+      await generateClubExports(event.id, event.name, clubNames, format, setProgressMsg);
+      toast.success("Files Archived and Downloaded!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to compile Export");
+    }
   };
 
   return (
@@ -1878,7 +1910,7 @@ function ClubsAnalyticsView({ event }) {
                   className="pl-10 pr-4 py-2.5 bg-slate-950/50 border border-slate-800 rounded-xl text-white text-lg placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all min-w-[240px]"
                 />
               </div>
-              <Button variant="secondary" icon={Download} onClick={handleExport} disabled={analytics.length === 0}>Export Data</Button>
+              <Button variant="secondary" icon={Download} onClick={() => setExportModalOpen(true)} disabled={analytics.length === 0}>Export Data</Button>
               {!uploadedFile && (
                 <Button icon={parsing ? undefined : Upload} loading={parsing} onClick={() => document.getElementById('club-import').click()}>
                   Import Club List
@@ -1901,6 +1933,18 @@ function ClubsAnalyticsView({ event }) {
                 </div>
               </div>
             </Modal>
+
+            {/* Premium Export Modal */}
+            <ExportModal 
+              open={exportModalOpen}
+              onClose={() => setExportModalOpen(false)}
+              clubs={analytics} // Pass the parsed analytics so it has {full, short}
+              onExport={executeExport}
+            />
+          </div>
+
+          <div className="px-6 pt-6">
+            <AttendanceStats analytics={analytics} />
           </div>
 
           <div className="overflow-x-auto">
@@ -1961,10 +2005,10 @@ function ClubsAnalyticsView({ event }) {
                         </span>
                       </td>
                       <td className="p-6 text-center">
-                        <div className="flex items-center justify-center gap-2 text-slate-700">
-                          <Activity className="w-4 h-4" />
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Live Data Soon</span>
-                        </div>
+                        <AttendanceBadge 
+                          status={row.attendanceCount > 0 ? "present" : "absent"} 
+                          time={row.latestTime} 
+                        />
                       </td>
                     </tr>
                   ))

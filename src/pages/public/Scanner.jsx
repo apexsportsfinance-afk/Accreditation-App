@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { Camera, CheckCircle, AlertCircle, Info, Lock, LogOut, RefreshCcw } from "lucide-react";
+import { Camera, CheckCircle, AlertCircle, Info, Lock, LogOut, RefreshCcw, Eye, EyeOff } from "lucide-react";
 import { AccreditationsAPI } from "../../lib/storage";
 import { AttendanceAPI } from "../../lib/attendanceApi";
 import { EventsAPI } from "../../lib/storage"; // Needed to lookup event slug mapping if URL has slug
@@ -9,6 +9,7 @@ export default function ScannerPage() {
   const [authorized, setAuthorized] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState("");
+  const [showPin, setShowPin] = useState(false);
   const defaultPin = import.meta.env.VITE_SCANNER_PIN || "1234";
 
   // Configuration from URL
@@ -218,17 +219,25 @@ export default function ScannerPage() {
           </p>
           
           <form onSubmit={handleAuth} className="space-y-4">
-            <div>
+            <div className="relative">
               <input 
-                type="password"
+                type={showPin ? "text" : "password"}
                 inputMode="numeric"
                 pattern="[0-9]*"
                 autoFocus
                 placeholder="••••"
                 value={pinInput}
                 onChange={e => setPinInput(e.target.value)}
-                className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-4 text-center text-3xl tracking-[1em] text-white focus:border-blue-500 outline-none transition-all placeholder:text-gray-700"
+                className="w-full bg-gray-950 border border-gray-800 rounded-2xl pl-4 pr-14 py-4 text-center text-3xl tracking-[1em] text-white focus:border-blue-500 outline-none transition-all placeholder:text-gray-700"
               />
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-400 transition-colors"
+                tabIndex="-1"
+              >
+                {showPin ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+              </button>
             </div>
             {pinError && <p className="text-red-400 text-sm font-bold text-center">{pinError}</p>}
             
