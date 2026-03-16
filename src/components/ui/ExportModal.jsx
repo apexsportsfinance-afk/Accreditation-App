@@ -13,12 +13,19 @@ const FormatIcon = ({ format, active }) => {
   return icons[format] || null;
 };
 
-export default function ExportModal({ open, onClose, clubs, onExport }) {
+export default function ExportModal({ open, onClose, clubs, initialSelectedClubs = [], onExport }) {
   const [format, setFormat] = useState('xlsx');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClubs, setSelectedClubs] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
   const [progressMsg, setProgressMsg] = useState("");
+
+  React.useEffect(() => {
+    if (open) {
+      setSelectedClubs(initialSelectedClubs);
+      setSearchTerm('');
+    }
+  }, [open, initialSelectedClubs]);
 
   const filteredClubs = useMemo(() => {
     if (!searchTerm) return clubs;

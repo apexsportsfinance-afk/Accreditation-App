@@ -1621,6 +1621,7 @@ function ClubsAnalyticsView({ event }) {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(new Set());
   const toast = useToast();
 
   useEffect(() => {
@@ -1815,6 +1816,17 @@ function ClubsAnalyticsView({ event }) {
         clubAccs.some(acc => acc.id === record.athlete_id)
       );
       
+      const presentAthletesCount = clubAttendance.filter(record => {
+        const acc = clubAccs.find(a => a.id === record.athlete_id);
+        return acc && String(acc.role || "").toLowerCase().includes("athlete");
+      }).length;
+
+      const presentCoachesCount = clubAttendance.filter(record => {
+        const acc = clubAccs.find(a => a.id === record.athlete_id);
+        const role = String(acc.role || "").toLowerCase();
+        return acc && !role.includes("athlete"); // Every non-athlete is counted as staff/coach
+      }).length;
+      
       // Get latest check-in time for the badge display
       let latestTime = null;
       if (clubAttendance.length > 0) {
@@ -1831,6 +1843,8 @@ function ClubsAnalyticsView({ event }) {
         approved: approvedAthletes.length,
         approvedNames: approvedAthletes.map(a => `${a.firstName || ""} ${a.lastName || ""}`.trim()).join(", "),
         attendanceCount: clubAttendance.length,
+        presentAthletes: presentAthletesCount,
+        presentCoaches: presentCoachesCount,
         latestTime: latestTime
       };
     }).filter(r => r.full !== "Unknown Club");
@@ -1843,6 +1857,24 @@ function ClubsAnalyticsView({ event }) {
       String(r.short).toLowerCase().includes(term)
     );
   }, [clubs, accreditations, searchTerm]);
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedRows(new Set(analytics.map(r => r.full)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (full, checked) => {
+    const newSelected = new Set(selectedRows);
+    if (checked) {
+      newSelected.add(full);
+    } else {
+      newSelected.delete(full);
+    }
+    setSelectedRows(newSelected);
+  };
 
   const handleOldExportData = () => {
     // Legacy Basic Export: Keeping exact functionality intact for the basic summary
@@ -1943,6 +1975,7 @@ function ClubsAnalyticsView({ event }) {
               open={exportModalOpen}
               onClose={() => setExportModalOpen(false)}
               clubs={analytics} // Pass the parsed analytics so it has {full, short}
+              initialSelectedClubs={Array.from(selectedRows)}
               onExport={executeExport}
             />
           </div>
@@ -1954,13 +1987,22 @@ function ClubsAnalyticsView({ event }) {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-950/50 border-b border-slate-800">
-                  <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">SR#</th>
-                  <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Club Short Name</th>
-                  <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Club Full Name</th>
-                  <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 text-center">Registered Athletes</th>
-                  <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 text-center">Accreditations Issued</th>
-                  <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 text-center">Attendance</th>
+                <tr className="bg-slate-900/60 border-b border-slate-800">
+                  <th className="p-5 w-12 text-center">
+                    <div className="flex items-center justify-center">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-primary-500 focus:ring-primary-500/50 focus:ring-offset-slate-950 transition-colors"
+                        checked={analytics.length > 0 && selectedRows.size === analytics.length}
+                        onChange={handleSelectAll}
+                      />
+                    </div>
+                  </th>
+                  <th className="p-5 text-xs text-slate-400 font-semibold tracking-wide">SR#</th>
+                  <th className="p-5 text-xs text-slate-400 font-semibold tracking-wide">Club / Academy</th>
+                  <th className="p-5 text-xs text-slate-400 font-semibold tracking-wide text-center">Registered Athletes</th>
+                  <th className="p-5 text-xs text-slate-400 font-semibold tracking-wide text-center">Accreditations Issued</th>
+                  <th className="p-5 text-xs text-slate-400 font-semibold tracking-wide text-center">Live Attendance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/30">
@@ -1975,16 +2017,24 @@ function ClubsAnalyticsView({ event }) {
                   </tr>
                 ) : (
                   analytics.map((row) => (
-                    <tr key={row.sr} className="group hover:bg-white/[0.02] transition-colors">
-                      <td className="p-6 text-slate-600 font-mono text-xs">{String(row.sr).padStart(2, '0')}</td>
-                      <td className="p-6">
-                        <div className="font-black text-slate-400 group-hover:text-cyan-400 transition-colors uppercase tracking-[0.1em] text-[10px]">
-                          {row.short}
+                    <tr key={row.sr} className={`group border-b border-slate-800/30 transition-all ${selectedRows.has(row.full) ? 'bg-primary-500/5' : 'hover:bg-white/[0.02]'}`}>
+                      <td className="p-5 text-center">
+                        <div className="flex items-center justify-center">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-primary-500 focus:ring-primary-500/50 focus:ring-offset-slate-950 transition-colors cursor-pointer"
+                            checked={selectedRows.has(row.full)}
+                            onChange={(e) => handleSelectRow(row.full, e.target.checked)}
+                          />
                         </div>
                       </td>
-                      <td className="p-6">
-                        <div className="font-bold text-white group-hover:text-primary-400 transition-colors tracking-tight">
-                          {row.full}
+                      <td className="p-5 text-slate-500 font-mono text-xs">{String(row.sr).padStart(2, '0')}</td>
+                      <td className="p-5">
+                        <div className="flex flex-col cursor-pointer" onClick={() => handleSelectRow(row.full, !selectedRows.has(row.full))}>
+                          <span className={`font-bold transition-colors tracking-tight ${selectedRows.has(row.full) ? 'text-primary-300' : 'text-white group-hover:text-primary-400'}`}>
+                            {row.full}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono mt-0.5">{row.short}</span>
                         </div>
                       </td>
                       <td className="p-6 text-center">
@@ -2010,7 +2060,8 @@ function ClubsAnalyticsView({ event }) {
                       </td>
                       <td className="p-6 text-center">
                         <AttendanceBadge 
-                          status={row.attendanceCount > 0 ? "present" : "absent"} 
+                          athletesCount={row.presentAthletes}
+                          coachesCount={row.presentCoaches}
                           time={row.latestTime} 
                         />
                       </td>

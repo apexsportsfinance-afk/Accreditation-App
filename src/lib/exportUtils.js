@@ -56,40 +56,75 @@ async function fetchClubData(eventId, clubFull) {
 }
 
 /**
- * Generates an Excel Blob (binary representation) for a single club
+ * Generates an Excel Blob for a single club
  */
 function generateExcelBlob(clubFull, clubData) {
   const ws = XLSX.utils.json_to_sheet(clubData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
-  
-  // Note: High-end styling like frozen headers/colors requires xlsx-js-style library
-  // Standard sheetjs does not support rich formatting in the free tier
-  
-  // write to array buffer
   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   return new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
 /**
+ * Generates a CSV Blob for a single club
+ */
+function generateCsvBlob(clubData) {
+  const ws = XLSX.utils.json_to_sheet(clubData);
+  const csvStr = XLSX.utils.sheet_to_csv(ws);
+  return new Blob([csvStr], { type: "text/csv;charset=utf-8;" });
+}
+
+/**
+ * Generates a PDF Blob for a single club
+ */
+async function generatePdfBlob(clubFull, clubData) {
+  const { jsPDF } = await import("jspdf");
+  await import("jspdf-autotable");
+  
+  const doc = new jsPDF("landscape");
+  
+  doc.setFontSize(18);
+  doc.text(`Attendance Report: ${clubFull}`, 14, 22);
+  doc.setFontSize(11);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+  
+  const headers = [["Sr#", "Name", "Club Name", "Category", "Accreditation Status", "Attendance"]];
+  const body = clubData.map(row => [row["Sr#"], row["Name"], row["Club Name"], row["Category"], row["Accreditation Status"], row["Attendance"]]);
+  
+  doc.autoTable({
+    startY: 35,
+    head: headers,
+    body: body,
+    theme: 'grid',
+    headStyles: { fillColor: [14, 165, 233] }, // Cyan-500
+    styles: { fontSize: 9 }
+  });
+  
+  return doc.output('blob');
+}
+
+/**
  * Main Export Handler
- * Drives the modal's selected clubs into either a single file or a ZIP.
  */
 export async function generateClubExports(eventId, eventName, selectedClubs, format, updateProgress) {
   if (!selectedClubs || selectedClubs.length === 0) return;
 
   const dateStr = new Date().toISOString().split('T')[0];
 
-  // If only 1 club is selected AND we're doing Excel, just download the single file natively
-  if (selectedClubs.length === 1 && format === 'xlsx') {
+  // If only 1 club is selected, download the single file natively
+  if (selectedClubs.length === 1) {
     const clubName = selectedClubs[0];
     updateProgress(`Fetching data for ${clubName}...`);
     const clubData = await fetchClubData(eventId, clubName);
     
-    updateProgress(`Generating Excel...`);
-    const blob = generateExcelBlob(clubName, clubData);
+    updateProgress(`Generating ${format.toUpperCase()}...`);
+    let blob;
+    if (format === 'csv') blob = generateCsvBlob(clubData);
+    else if (format === 'pdf') blob = await generatePdfBlob(clubName, clubData);
+    else blob = generateExcelBlob(clubName, clubData);
     
-    saveAs(blob, `${sanitizeFilename(clubName)}-Attendance-${dateStr}.xlsx`);
+    saveAs(blob, `${sanitizeFilename(clubName)}-Attendance-${dateStr}.${format}`);
     return;
   }
 
@@ -104,24 +139,20 @@ export async function generateClubExports(eventId, eventName, selectedClubs, for
     const clubFull = selectedClubs[i];
     updateProgress(`Generating file ${i + 1} of ${selectedClubs.length}: ${clubFull}...`);
     
-    // 1. Fetch
     const clubData = await fetchClubData(eventId, clubFull);
     
-    // 2. Format
-    if (format === 'xlsx') {
-      const blob = generateExcelBlob(clubFull, clubData);
-      folder.file(`${sanitizeFilename(clubFull)}-Attendance-${dateStr}.xlsx`, blob);
-    } 
-    // Extendable: Add CSV/PDF generators here below if needed.
-    // For now, defaulting multi to xlsx if requested 
+    let blob;
+    if (format === 'csv') blob = generateCsvBlob(clubData);
+    else if (format === 'pdf') blob = await generatePdfBlob(clubFull, clubData);
+    else blob = generateExcelBlob(clubFull, clubData);
+    
+    folder.file(`${sanitizeFilename(clubFull)}-Attendance-${dateStr}.${format}`, blob);
   }
 
-  // 3. Generate ZIP metadata
   folder.file("README.txt", `Generated on: ${new Date().toLocaleString()}\nEvent: ${eventName}\nTotal Clubs Exported: ${selectedClubs.length}\nFormat: ${format.toUpperCase()}`);
 
   updateProgress(`Zipping ${selectedClubs.length} files together...`);
 
-  // 4. Client-side Download
   const zipContent = await zip.generateAsync({ type: "blob" });
-  saveAs(zipContent, `Multi-Club-Export-${dateStr}.zip`);
+  saveAs(zipContent, `${sanitizeFilename(eventName)}-MultiClub-Export-${dateStr}.zip`);
 }
