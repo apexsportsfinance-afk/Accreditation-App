@@ -1,5 +1,4 @@
 import * as XLSX from "xlsx";
-import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { AccreditationsAPI } from "./storage";
 import { AttendanceAPI } from "./attendanceApi";
@@ -95,6 +94,8 @@ export async function generateClubExports(eventId, eventName, selectedClubs, for
   }
 
   // --- MULTI-CLUB / ZIP FLOW ---
+  const JSZipModule = await import("jszip");
+  const JSZip = JSZipModule.default || JSZipModule;
   const zip = new JSZip();
   const folderName = `${sanitizeFilename(eventName)}-Club-Reports-${dateStr}`;
   const folder = zip.folder(folderName);
