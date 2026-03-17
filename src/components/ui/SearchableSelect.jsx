@@ -99,16 +99,16 @@ export function SearchableSelect({
 
         {isOpen && (
           <div className={cn(
-            "absolute z-[9999] mt-1 w-full rounded-lg border shadow-2xl overflow-hidden",
+            "absolute z-[9999] mt-2 w-full rounded-xl border shadow-xl overflow-hidden",
             light
-              ? "bg-white border-slate-200 shadow-black/10"
+              ? "bg-white border-slate-200 shadow-slate-200/50"
               : "bg-slate-900 border-slate-700 shadow-black/50"
           )}>
             <div className={cn(
-              "flex items-center gap-2 px-3 py-2 border-b",
-              light ? "border-slate-200" : "border-slate-700"
+              "flex items-center gap-3 px-4 py-3 border-b",
+              light ? "border-slate-100 bg-slate-50/50" : "border-slate-800 bg-slate-800/20"
             )}>
-              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <Search className={cn("w-4 h-4 flex-shrink-0", light ? "text-cyan-600" : "text-slate-400")} />
               <input
                 ref={inputRef}
                 type="text"
@@ -116,36 +116,38 @@ export function SearchableSelect({
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
                 className={cn(
-                  "flex-1 bg-transparent text-lg focus:outline-none",
-                  light ? "text-slate-900 placeholder-slate-400" : "text-white placeholder-slate-500"
+                  "flex-1 bg-transparent text-base focus:outline-none w-full min-w-0",
+                  light ? "text-slate-700 placeholder-slate-400" : "text-white placeholder-slate-500"
                 )}
               />
             </div>
-            <div className="max-h-56 overflow-y-auto">
+            <div className="max-h-60 overflow-y-auto overscroll-contain">
               {filtered.length === 0 ? (
                 <p className={cn(
-                  "text-lg text-center py-4",
+                  "text-sm text-center py-6",
                   light ? "text-slate-400" : "text-slate-500"
                 )}>
                   No options found
                 </p>
               ) : (
-                filtered.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleSelect(option)}
-                    onTouchEnd={(e) => { e.preventDefault(); handleSelect(option); }}
-                    className={cn(
-                      "w-full px-4 py-3 text-left text-lg transition-colors",
-                      option.value === value
-                        ? (light ? "bg-cyan-50 text-cyan-700 font-medium" : "bg-primary-500/20 text-primary-300 font-medium")
-                        : (light ? "text-slate-700 hover:bg-slate-50 active:bg-slate-100" : "text-slate-200 hover:bg-slate-800 active:bg-slate-700")
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))
+                <div className="p-1.5 flex flex-col gap-0.5">
+                  {filtered.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleSelect(option)}
+                      onTouchEnd={(e) => { e.preventDefault(); handleSelect(option); }}
+                      className={cn(
+                        "w-full px-4 py-3 text-left text-base transition-all rounded-lg select-none",
+                        option.value === value
+                          ? (light ? "bg-cyan-50 text-cyan-700 font-bold" : "bg-primary-500/20 text-primary-300 font-bold")
+                          : (light ? "text-slate-600 hover:bg-slate-100/80 active:bg-slate-200" : "text-slate-200 hover:bg-slate-800/80 active:bg-slate-700")
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>
