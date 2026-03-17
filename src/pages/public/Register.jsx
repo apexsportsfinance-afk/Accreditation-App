@@ -75,6 +75,7 @@ export default function Register() {
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [duplicateError, setDuplicateError] = useState(null);
   const [clubs, setClubs] = useState([]);
+  const [categoryAllowlist, setCategoryAllowlist] = useState({});
 
   useEffect(() => {
     const loadEvent = async () => {
@@ -119,6 +120,15 @@ export default function Register() {
         console.error("Failed to load clubs:", err);
         setClubs([]);
       }
+      // Fetch dynamic category allowlist restrictions
+      try {
+        const allowlistRaw = await GlobalSettingsAPI.get(`event_${eventData.id}_category_allowlist`);
+        if (allowlistRaw) {
+          setCategoryAllowlist(typeof allowlistRaw === 'string' ? JSON.parse(allowlistRaw) : allowlistRaw);
+        }
+      } catch (err) {
+        console.error("Failed to load allowlist:", err);
+      }
       }
       setLoading(false);
     };
@@ -136,7 +146,22 @@ export default function Register() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === "role") {
+      let newClub = "";
+      
+      const selectedCat = eventCategories.find(c => c.name === value);
+      const catId = selectedCat ? selectedCat.id : value;
+      
+      const restrictedOrgs = categoryAllowlist && categoryAllowlist[catId];
+      if (restrictedOrgs && restrictedOrgs.length === 1) {
+        newClub = restrictedOrgs[0];
+      }
+      setFormData((prev) => ({ ...prev, [name]: value, club: newClub }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+    
     if (name === "nationality") {
       setErrors((prev) => ({ ...prev, nationality: null }));
     }
@@ -597,34 +622,59 @@ export default function Register() {
                 />
               </div>
 
-              {/* Organization/Club/Academy second */}
               <div className="relative z-[20]">
-                {formData.role && (teamRoles.includes(formData.role.toLowerCase()) || formData.role.toLowerCase().includes("athlete") || formData.role.toLowerCase().includes("coach")) && clubs.length > 0 ? (
-                  <SearchableSelect
-                    label="Organization/Club/Academy"
-                    value={formData.club}
-                    onChange={(e) => handleInputChange({ target: { name: "club", value: e.target.value } })}
-                    error={errors.club}
-                    required
-                    options={clubs.map(c => {
-                      const name = typeof c === 'string' ? c : (c?.full || c?.short);
-                      return name ? { value: name, label: name } : null;
-                    }).filter(Boolean)}
-                    placeholder="Select organization, club or academy"
-                    light
-                  />
-                ) : (
-                  <Input
-                    label="Organization/Club/Academy"
-                    name="club"
-                    value={formData.club}
-                    onChange={handleInputChange}
-                    error={errors.club}
-                    required
-                    placeholder="Enter organization, club or academy"
-                    light
-                  />
-                )}
+                {(() => {
+                  const selectedCat = eventCategories.find(c => c.name === formData.role);
+                  const catId = selectedCat ? selectedCat.id : formData.role;
+                  const restrictedOrgs = formData.role ? categoryAllowlist[catId] : null;
+                  
+                  if (restrictedOrgs && restrictedOrgs.length > 0) {
+                    return (
+                      <SearchableSelect
+                        label="Organization/Club/Academy *"
+                        value={formData.club}
+                        onChange={(e) => handleInputChange({ target: { name: "club", value: e.target.value } })}
+                        error={errors.club}
+                        required
+                        options={restrictedOrgs.map(name => ({ value: name, label: name }))}
+                        placeholder="Select Organization"
+                        light
+                        disabled={restrictedOrgs.length === 1}
+                      />
+                    );
+                  }
+                  
+                  if (formData.role && (teamRoles.includes(formData.role.toLowerCase()) || formData.role.toLowerCase().includes("athlete") || formData.role.toLowerCase().includes("coach")) && clubs.length > 0) {
+                    return (
+                      <SearchableSelect
+                        label="Organization/Club/Academy *"
+                        value={formData.club}
+                        onChange={(e) => handleInputChange({ target: { name: "club", value: e.target.value } })}
+                        error={errors.club}
+                        required
+                        options={clubs.map(c => {
+                          const name = typeof c === 'string' ? c : (c?.full || c?.short);
+                          return name ? { value: name, label: name } : null;
+                        }).filter(Boolean)}
+                        placeholder="Select organization, club or academy"
+                        light
+                      />
+                    );
+                  }
+
+                  return (
+                    <Input
+                      label="Organization/Club/Academy"
+                      name="club"
+                      value={formData.club}
+                      onChange={handleInputChange}
+                      error={errors.club}
+                      required
+                      placeholder="Enter organization, club or academy"
+                      light
+                    />
+                  );
+                })()}
               </div>
 
               {/* Nationality last - full width for emphasis */}

@@ -11,6 +11,7 @@ export function SearchableSelect({
   error,
   required = false,
   light = false,
+  disabled = false,
   className
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,6 +53,7 @@ export function SearchableSelect({
   };
 
   const handleOpen = () => {
+    if (disabled) return;
     setIsOpen(true);
     setTimeout(() => inputRef.current?.focus(), 100);
   };
@@ -71,13 +73,15 @@ export function SearchableSelect({
         <button
           type="button"
           onClick={handleOpen}
+          disabled={disabled}
           className={cn(
             "w-full px-4 py-2.5 rounded-lg border text-lg transition-all text-left flex items-center justify-between gap-2",
             light
               ? "bg-white border-slate-300 text-slate-900 focus:ring-cyan-500/40 focus:border-cyan-500"
               : "bg-slate-800/50 border-slate-700 text-white focus:ring-primary-500/50 focus:border-primary-500",
             error && "border-red-500",
-            isOpen && (light ? "ring-2 ring-cyan-500/40 border-cyan-500" : "ring-2 ring-primary-500/50 border-primary-500")
+            isOpen && (light ? "ring-2 ring-cyan-500/40 border-cyan-500" : "ring-2 ring-primary-500/50 border-primary-500"),
+            disabled && "opacity-60 cursor-not-allowed pointer-events-none"
           )}
         >
           <span className={selectedOption ? "" : (light ? "text-slate-400" : "text-slate-500")}>

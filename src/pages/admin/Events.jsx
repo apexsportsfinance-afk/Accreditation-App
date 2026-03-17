@@ -27,7 +27,8 @@ import {
   CheckCircle2,
   Activity,
   Download,
-  Palette
+  Palette,
+  Shield
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { extractTextFromPdf as parsePDFText } from "../../lib/pdfParser";
@@ -1202,26 +1203,84 @@ function DetailActionCard({ title, description, icon: Icon, color, onClick }) {
 
 // --- SUB-PAGE VIEWS ---
 
+function BadgeColorPicker({ defaultValue, name }) {
+  const [color, setColor] = useState(defaultValue || COLOR_PRESETS[0]);
+  
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-300 mb-2">Badge Color</label>
+      <input type="hidden" name={name} value={color} />
+      <div className="flex flex-wrap items-center gap-2.5 mb-2">
+        {COLOR_PRESETS.map(c => (
+          <button 
+            type="button" 
+            key={c} 
+            onClick={() => setColor(c)} 
+            className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 flex-shrink-0 ${color === c ? 'border-white shadow-xl scale-110' : 'border-transparent'}`} 
+            style={{ backgroundColor: c }} 
+            title={c}
+          />
+        ))}
+        <div className="w-px h-6 bg-slate-700/50 mx-1 flex-shrink-0" />
+        <div className="flex items-center gap-2">
+          <label 
+            className={`relative w-8 h-8 rounded-full border-2 cursor-pointer transition-transform hover:scale-105 flex items-center justify-center overflow-hidden ${!COLOR_PRESETS.includes(color) ? 'border-white shadow-xl shadow-white/10' : 'border-slate-500 bg-slate-800'}`} 
+            style={{ backgroundColor: !COLOR_PRESETS.includes(color) ? color : undefined }}
+            title="Custom RGB/Hex Color"
+          >
+             <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="opacity-0 absolute w-full h-full cursor-pointer" />
+             {COLOR_PRESETS.includes(color) && <Palette className="w-4 h-4 text-slate-400" />}
+          </label>
+          {!COLOR_PRESETS.includes(color) && (
+            <span className="text-xs font-mono text-slate-200 font-bold px-2 py-1 bg-slate-800 rounded uppercase border border-slate-700">{color}</span>
+          )}
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">Pick a preset or custom RGB/HEX color to print on physical badge ribbons.</p>
+    </div>
+  );
+}
+
 function CategoriesView({ event, availableCategories, onClose }) {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [cats, setCats] = useState(availableCategories);
+  const [cats, setCats] = useState([]);
   const toast = useToast();
 
+  const [eventClubs, setEventClubs] = useState([]);
+  const [categoryAllowlists, setCategoryAllowlists] = useState({});
+
+  const [catModal, setCatModal] = useState({ open: false, mode: "add_main", data: null });
+  const [deleteModal, setDeleteModal] = useState({ open: false, data: null });
+  const [allowlistModal, setAllowlistModal] = useState({ open: false, categoryId: null });
+  const [tempAllowlist, setTempAllowlist] = useState([]);
+  const [allowlistSearch, setAllowlistSearch] = useState("");
+
   useEffect(() => {
-    loadSelected();
+    loadData();
   }, [event.id]);
 
   useEffect(() => {
     setCats(availableCategories);
   }, [availableCategories]);
 
-  const loadSelected = async () => {
+  const loadData = async () => {
     try {
-      const data = await EventCategoriesAPI.getByEventId(event.id);
+      const [data, clubsList, allowlistRaw] = await Promise.all([
+        EventCategoriesAPI.getByEventId(event.id),
+        GlobalSettingsAPI.getClubs(event.id),
+        GlobalSettingsAPI.get(`event_${event.id}_category_allowlist`)
+      ]);
       setSelectedCategories(data.map(r => r.categoryId));
+      
+      const parsedClubs = clubsList.map(c => c.full || c.short || c).sort();
+      setEventClubs(parsedClubs);
+      
+      if (allowlistRaw) {
+        setCategoryAllowlists(typeof allowlistRaw === 'string' ? JSON.parse(allowlistRaw) : allowlistRaw);
+      }
     } catch (err) {
-      console.error("Failed to load event categories", err);
+      console.error("Failed to load category data", err);
     }
   };
 
@@ -1231,224 +1290,328 @@ function CategoriesView({ event, availableCategories, onClose }) {
     );
   };
 
-  const updateCategoryColor = async (id, newColor) => {
-    try {
-      await CategoriesAPI.update(id, { badgeColor: newColor });
-      setCats(prev => prev.map(c => c.id === id ? { ...c, badgeColor: newColor } : c));
-      toast.success("Category color updated");
-    } catch (err) {
-      toast.error("Failed to update color");
-    }
-  };
-
   const save = async () => {
     setSaving(true);
     try {
       await EventCategoriesAPI.setForEvent(event.id, selectedCategories);
-      toast.success("Categories updated successfully");
+      await GlobalSettingsAPI.set(`event_${event.id}_category_allowlist`, JSON.stringify(categoryAllowlists));
+      toast.success("Categories and rules updated successfully");
       onClose();
     } catch (err) {
-      toast.error("Failed to save categories");
+      toast.error("Failed to save changes");
     } finally {
       setSaving(false);
     }
   };
 
-  // Group categories: Parents (parentId null) and their children
+  const handleSaveCat = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const rawName = formData.get("name");
+    const payload = {
+      name: rawName,
+      slug: rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + Math.random().toString(36).substr(2, 4),
+      badgeColor: formData.get("badgeColor") || "#0ea5e9",
+      description: formData.get("description") || "",
+      parentId: catModal.mode === "add_sub" ? catModal.data.parentId : (catModal.data?.parentId || null),
+      status: "active"
+    };
+
+    try {
+      let savedCat;
+      if (catModal.mode.startsWith("add")) {
+        savedCat = await CategoriesAPI.create(payload);
+        setCats(prev => [...prev, savedCat].sort((a, b) => a.name.localeCompare(b.name)));
+        toast.success("Category created");
+      } else {
+        savedCat = await CategoriesAPI.update(catModal.data.id, payload);
+        setCats(prev => prev.map(c => c.id === savedCat.id ? savedCat : c));
+        toast.success("Category updated");
+      }
+      setCatModal({ open: false, mode: "add_main", data: null });
+    } catch (err) {
+      toast.error("Failed to save category");
+    }
+  };
+
+  const handleDeleteCat = async () => {
+    if (!deleteModal.data) return;
+    try {
+      const inUse = await CategoriesAPI.isInUse(deleteModal.data.id);
+      if (inUse) {
+        toast.error("Cannot delete category currently assigned to attendees");
+        return;
+      }
+      await CategoriesAPI.delete(deleteModal.data.id);
+      setCats(prev => prev.filter(c => c.id !== deleteModal.data.id && c.parentId !== deleteModal.data.id));
+      toast.success("Category deleted");
+      setDeleteModal({ open: false, data: null });
+    } catch (err) {
+      toast.error("Failed to delete category");
+    }
+  };
+
+  const openAllowlist = (categoryId) => {
+    setTempAllowlist(categoryAllowlists[categoryId] || []);
+    setAllowlistSearch("");
+    setAllowlistModal({ open: true, categoryId });
+  };
+
+  const saveAllowlist = () => {
+    setCategoryAllowlists(prev => ({
+      ...prev,
+      [allowlistModal.categoryId]: tempAllowlist
+    }));
+    setAllowlistModal({ open: false, categoryId: null });
+    toast.success("Club limits updated (Remember to click Save Changes)");
+  };
+
+  const toggleAllowlistClub = (club) => {
+    setTempAllowlist(prev => prev.includes(club) ? prev.filter(c => c !== club) : [...prev, club]);
+  };
+
   const mainCategories = cats.filter(c => !c.parentId);
   const subCategories = cats.filter(c => !!c.parentId);
 
   const groupedCategories = mainCategories.map(parent => ({
     ...parent,
-    children: subCategories.filter(child => child.parentId === parent.id)
-  }));
-
-  // Categories without a valid parent (shouldn't happen with current data but for safety)
-  const orphanCategories = subCategories.filter(child => !mainCategories.some(p => p.id === child.parentId));
+    children: subCategories.filter(child => child.parentId === parent.id).sort((a,b) => a.name.localeCompare(b.name))
+  })).sort((a,b) => a.name.localeCompare(b.name));
 
   return (
-    <Card className="border-slate-800 bg-slate-900/40 backdrop-blur-xl">
-      <CardContent className="p-8 space-y-8">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h3 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase italic">Participant Categories</h3>
-            <p className="text-slate-400 font-light">Select which roles and groups can register for this event.</p>
+    <div className="space-y-6">
+      <Card className="border-slate-800 bg-slate-900/40 backdrop-blur-xl">
+        <CardContent className="p-8 space-y-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase italic">Categories Management</h3>
+              <p className="text-slate-400 font-light text-lg">Define roles, edit names, and set exclusive club dropdown limits for registration.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" icon={Plus} onClick={() => setCatModal({ open: true, mode: 'add_main', data: null })}>
+                Add Main Group
+              </Button>
+              <Button onClick={save} loading={saving}>Save Config</Button>
+            </div>
           </div>
-          <Button onClick={save} loading={saving}>Save Changes</Button>
-        </div>
 
-        <div className="space-y-6">
-          {groupedCategories.map(parent => (
-            <div key={parent.id} className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-white/5" />
-                <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em] bg-slate-900/40 px-3 py-0.5 rounded-full border border-white/5">
-                  {parent.name}
-                </h4>
-                <div className="h-px flex-1 bg-white/5" />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {parent.children.map(cat => (
-                  <div
-                    key={cat.id}
-                    className={`relative p-2.5 rounded-lg border transition-all duration-300 flex flex-col gap-2 group ${
-                      selectedCategories.includes(cat.id)
-                        ? "border-primary-500 bg-primary-500/5 shadow-lg shadow-primary-500/5"
-                        : "border-slate-800 bg-slate-950/30 hover:border-slate-700"
-                    }`}
-                  >
-                    <div 
-                      className="cursor-pointer flex-1"
-                      onClick={() => toggleCategory(cat.id)}
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div 
-                          className="w-3 h-3 rounded-full shadow border border-white/10 flex-shrink-0" 
-                          style={{ backgroundColor: cat.badgeColor }} 
-                        />
-                        <span className={`font-bold uppercase tracking-tight text-[10px] truncate ${selectedCategories.includes(cat.id) ? "text-white" : "text-slate-400 group-hover:text-slate-300"}`}>
-                          {cat.name}
-                        </span>
-                        {selectedCategories.includes(cat.id) && <Check className="w-3 h-3 text-primary-400 ml-auto flex-shrink-0" />}
-                      </div>
-                      {cat.description && (
-                        <p className="text-[9px] text-slate-600 font-light leading-tight line-clamp-1 group-hover:text-slate-500">
-                          {cat.description}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Color Picker Section */}
-                    <div className="pt-2 border-t border-slate-800/40 flex items-center justify-between gap-2">
-                      <div className="flex flex-wrap gap-1">
-                        {COLOR_PRESETS.slice(0, 4).map(color => (
-                          <button
-                            key={color}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateCategoryColor(cat.id, color);
-                            }}
-                            className={`w-2.5 h-2.5 rounded-sm transition-all hover:scale-125 shadow-sm ${cat.badgeColor === color ? 'ring-1 ring-white ring-offset-1 ring-offset-slate-900 scale-110' : 'opacity-30 hover:opacity-100'}`}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                      
-                      <div className="relative group/picker">
-                        <button 
-                          className="p-1 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.1)]"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            document.getElementById(`color-picker-${cat.id}`).click();
-                          }}
-                          title="Change Color"
-                        >
-                          <Edit className="w-2.5 h-2.5" />
-                        </button>
-                        <input
-                          id={`color-picker-${cat.id}`}
-                          type="color"
-                          value={cat.badgeColor}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            updateCategoryColor(cat.id, e.target.value);
-                          }}
-                          className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
-                        />
-                      </div>
-                    </div>
+          <div className="space-y-8">
+            {groupedCategories.map(parent => (
+              <div key={parent.id} className="bg-slate-900/60 rounded-3xl border border-slate-700/50 overflow-hidden shadow-2xl">
+                {/* Parent Category Header */}
+                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-slate-800 to-slate-900/90 border-b border-slate-700/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-1.5 h-10 bg-primary-500 rounded-full" />
+                    <h4 className="text-2xl font-black text-white tracking-widest uppercase">{parent.name}</h4>
+                    <span className="px-3 py-1 bg-slate-800 rounded-lg text-xs font-bold text-slate-400 border border-slate-700">{parent.children.length} roles</span>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {orphanCategories.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-white/5" />
-                <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em] bg-slate-900/40 px-3 py-0.5 rounded-full border border-white/5">
-                  Others
-                </h4>
-                <div className="h-px flex-1 bg-white/5" />
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {orphanCategories.map(cat => (
-                  <div
-                    key={cat.id}
-                    className={`relative p-2.5 rounded-lg border transition-all duration-300 flex flex-col gap-2 group ${
-                      selectedCategories.includes(cat.id)
-                        ? "border-primary-500 bg-primary-500/5 shadow-lg shadow-primary-500/5"
-                        : "border-slate-800 bg-slate-950/30 hover:border-slate-700"
-                    }`}
-                  >
-                    <div 
-                      className="cursor-pointer flex-1"
-                      onClick={() => toggleCategory(cat.id)}
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div 
-                          className="w-3 h-3 rounded-full shadow border border-white/10 flex-shrink-0" 
-                          style={{ backgroundColor: cat.badgeColor }} 
-                        />
-                        <span className={`font-bold uppercase tracking-tight text-[10px] truncate ${selectedCategories.includes(cat.id) ? "text-white" : "text-slate-400 group-hover:text-slate-300"}`}>
-                          {cat.name}
-                        </span>
-                        {selectedCategories.includes(cat.id) && <Check className="w-3 h-3 text-primary-400 ml-auto flex-shrink-0" />}
-                      </div>
-                      {cat.description && (
-                        <p className="text-[9px] text-slate-600 font-light leading-tight line-clamp-1 group-hover:text-slate-500">
-                          {cat.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="pt-2 border-t border-slate-800/40 flex items-center justify-between gap-2">
-                      <div className="flex flex-wrap gap-1">
-                        {COLOR_PRESETS.slice(0, 4).map(color => (
-                          <button
-                            key={color}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateCategoryColor(cat.id, color);
-                            }}
-                            className={`w-2.5 h-2.5 rounded-sm transition-all hover:scale-125 shadow-sm ${cat.badgeColor === color ? 'ring-1 ring-white ring-offset-1 ring-offset-slate-900 scale-110' : 'opacity-30 hover:opacity-100'}`}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                      
-                      <div className="relative group/picker">
-                        <button 
-                          className="p-1 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.1)]"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            document.getElementById(`orphan-picker-${cat.id}`).click();
-                          }}
-                          title="Change Color"
-                        >
-                          <Edit className="w-2.5 h-2.5" />
-                        </button>
-                        <input
-                          id={`orphan-picker-${cat.id}`}
-                          type="color"
-                          value={cat.badgeColor}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            updateCategoryColor(cat.id, e.target.value);
-                          }}
-                          className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
-                        />
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => setCatModal({ open: true, mode: 'add_sub', data: { parentId: parent.id } })} className="text-primary-400 hover:text-white hover:bg-primary-500/20 mr-2">
+                       Add Sub-Role
+                    </Button>
+                    <button onClick={() => setCatModal({ open: true, mode: 'edit', data: parent })} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setDeleteModal({ open: true, data: parent })} className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 rounded-lg transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                ))}
+                </div>
+
+                {/* Subcategories Grid */}
+                <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {parent.children.map(cat => (
+                    <div
+                      key={cat.id}
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 flex flex-col group ${
+                        selectedCategories.includes(cat.id)
+                          ? "border-primary-500 bg-primary-500/10 shadow-[0_4px_20px_-4px_rgba(14,165,233,0.3)]"
+                          : "border-slate-800 bg-slate-950/50 hover:border-slate-700 hover:bg-slate-900"
+                      }`}
+                    >
+                      <div 
+                        className="flex items-start justify-between cursor-pointer mb-4"
+                        onClick={() => toggleCategory(cat.id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-5 h-5 rounded flex items-center justify-center border-2 mt-0.5 transition-colors ${
+                            selectedCategories.includes(cat.id) ? "bg-primary-500 border-primary-500 text-white" : "border-slate-600 text-transparent"
+                          }`}>
+                            <Check className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <h5 className={`text-base font-bold uppercase tracking-wide leading-none mb-1.5 ${selectedCategories.includes(cat.id) ? "text-white" : "text-slate-300 group-hover:text-white"}`}>
+                              {cat.name}
+                            </h5>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {/* Color chip */}
+                              <div className="w-3 h-3 rounded-full shadow-inner border border-white/20" style={{ backgroundColor: cat.badgeColor }} />
+                              {cat.description && (
+                                <p className="text-xs font-medium text-slate-500 line-clamp-1">{cat.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer controls */}
+                      <div className="mt-auto pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); openAllowlist(cat.id); }} 
+                          className={`text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                            categoryAllowlists[cat.id]?.length > 0 
+                              ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20" 
+                              : "bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700"
+                          }`}
+                        >
+                          <Shield className="w-3.5 h-3.5" />
+                          {categoryAllowlists[cat.id]?.length > 0 ? `${categoryAllowlists[cat.id].length} Clubs Allowed` : "No Limits"}
+                        </button>
+
+                        <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={(e) => { e.stopPropagation(); setCatModal({ open: true, mode: 'edit', data: cat }) }} className="p-1.5 text-slate-500 hover:text-white bg-transparent hover:bg-slate-800 rounded transition-colors">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteModal({ open: true, data: cat }) }} className="p-1.5 text-slate-500 hover:text-red-400 bg-transparent hover:bg-red-500/10 rounded transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {parent.children.length === 0 && (
+                    <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-800 rounded-2xl">
+                      <p className="text-slate-500 font-light text-lg">No sub-roles defined for this group.</p>
+                      <Button variant="ghost" className="mt-2 text-primary-400" onClick={() => setCatModal({ open: true, mode: 'add_sub', data: { parentId: parent.id } })}>Add Sub-Role</Button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Models go here (Add/Edit Category, Delete Category, Allowlist Configurator) */}
+      <Modal isOpen={catModal.open} onClose={() => setCatModal({ open: false, mode: 'add_main', data: null })} title={catModal.mode === 'edit' ? "Edit Category" : catModal.mode === "add_sub" ? "Add Sub-Role" : "Add Parent Group"}>
+        <form onSubmit={handleSaveCat} className="p-6 space-y-5">
+          <Input 
+             label="Category Name" 
+             name="name" 
+             defaultValue={catModal.data?.name || ""} 
+             placeholder="e.g. VIP, Media, Athlete" 
+             required 
+          />
+          <Input 
+             label="Description (Optional)" 
+             name="description" 
+             defaultValue={catModal.data?.description || ""} 
+             placeholder="Brief description of this role" 
+          />
+          <BadgeColorPicker defaultValue={catModal.data?.badgeColor} name="badgeColor" />
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={() => setCatModal({ open: false, mode: 'add_main', data: null })} className="flex-1">Cancel</Button>
+            <Button type="submit" className="flex-1">{catModal.mode === 'edit' ? "Save Changes" : "Create Category"}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={deleteModal.open} onClose={() => setDeleteModal({ open: false, data: null })} title="Confirm Delete">
+        <div className="p-6 space-y-6">
+           <div className="flex items-start gap-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+             <AlertCircle className="w-6 h-6 text-red-500 shrink-0" />
+             <div>
+               <h4 className="text-lg font-bold text-red-400">Permanently Delete?</h4>
+               <p className="text-slate-300 mt-1 leading-relaxed">You are about to delete <span className="font-bold text-white">{deleteModal.data?.name}</span>. This action cannot be undone.</p>
+             </div>
+           </div>
+           <div className="flex gap-3">
+             <Button variant="secondary" onClick={() => setDeleteModal({ open: false, data: null })} className="flex-1">Cancel</Button>
+             <Button variant="danger" onClick={handleDeleteCat} className="flex-1">Yes, Delete</Button>
+           </div>
         </div>
-      </CardContent>
-    </Card>
+      </Modal>
+
+      <Modal isOpen={allowlistModal.open} onClose={() => setAllowlistModal({ open: false, categoryId: null })} title="Configure Club Constraints">
+        <div className="p-6 flex flex-col h-[70vh]">
+          <div className="mb-4">
+             <h4 className="text-lg font-bold text-white mb-2">Select Allowed Organizations</h4>
+             <p className="text-slate-400 text-sm leading-relaxed mb-4">
+                When a registrant selects this role, their exact organization dropdown will ONLY show the clubs you select below. If NO clubs are selected, the registrant can choose from any global club.
+             </p>
+             <div className="relative">
+               <Input 
+                 icon={Search} 
+                 placeholder="Search or dynamically add new item..." 
+                 value={allowlistSearch}
+                 onChange={(e) => setAllowlistSearch(e.target.value)}
+                 onKeyDown={(e) => {
+                   if (e.key === "Enter" && allowlistSearch.trim() && !eventClubs.includes(allowlistSearch.trim()) && !tempAllowlist.includes(allowlistSearch.trim())) {
+                     setTempAllowlist(prev => [...prev, allowlistSearch.trim()]);
+                     setAllowlistSearch("");
+                     e.preventDefault();
+                   }
+                 }}
+               />
+               {allowlistSearch.trim() && !eventClubs.includes(allowlistSearch.trim()) && !tempAllowlist.includes(allowlistSearch.trim()) && (
+                 <Button 
+                   size="sm" 
+                   className="absolute right-2 top-1/2 -translate-y-1/2 py-1.5 px-3 h-auto min-h-0 bg-primary-600 hover:bg-primary-500 text-xs shadow-lg"
+                   onClick={() => {
+                     const item = allowlistSearch.trim();
+                     setTempAllowlist(prev => [...prev, item]);
+                     setAllowlistSearch("");
+                   }}
+                 >
+                   + Add "{allowlistSearch.trim()}"
+                 </Button>
+               )}
+             </div>
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0 bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800/50 my-2">
+            {eventClubs.length === 0 && tempAllowlist.length === 0 && !allowlistSearch ? (
+               <div className="p-8 text-center text-slate-500">No options defined for this event. Use the search box above to manually define items, or go to "Event Clubs List" to upload a list.</div>
+            ) : (
+               [...new Set([...eventClubs, ...tempAllowlist])].sort().filter(c => c.toLowerCase().includes(allowlistSearch.toLowerCase())).map(club => {
+                 const isAllowed = tempAllowlist.includes(club);
+                 return (
+                   <label key={club} className={`flex items-start gap-3 p-4 cursor-pointer transition-colors ${isAllowed ? 'bg-primary-500/10' : 'hover:bg-slate-800/50'}`}>
+                     <div className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center border ${isAllowed ? 'bg-primary-500 border-primary-500 text-white' : 'border-slate-600 text-transparent'}`}>
+                       <input type="checkbox" className="hidden" checked={isAllowed} onChange={() => toggleAllowlistClub(club)} />
+                       <Check className={`w-3.5 h-3.5 ${isAllowed ? 'opacity-100' : 'opacity-0'}`} />
+                     </div>
+                     <span className={`text-base font-medium leading-tight ${isAllowed ? 'text-white' : 'text-slate-300'}`}>{club}</span>
+                   </label>
+                 )
+               })
+            )}
+            {/* System defaults for quick access if not explicitly in the clubs list */}
+            {["Hamdan Sports Complex", "UAE Aquatics Federation", "Organizing Committee"].filter(c => c.toLowerCase().includes(allowlistSearch.toLowerCase()) && !eventClubs.includes(c)).map(club => {
+                 const isAllowed = tempAllowlist.includes(club);
+                 return (
+                   <label key={club} className={`flex items-start gap-3 p-4 cursor-pointer transition-colors ${isAllowed ? 'bg-primary-500/10' : 'hover:bg-slate-800/50'}`}>
+                     <div className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center border ${isAllowed ? 'bg-primary-500 border-primary-500 text-white' : 'border-slate-600 text-transparent'}`}>
+                       <input type="checkbox" className="hidden" checked={isAllowed} onChange={() => toggleAllowlistClub(club)} />
+                       <Check className={`w-3.5 h-3.5 ${isAllowed ? 'opacity-100' : 'opacity-0'}`} />
+                     </div>
+                     <span className={`text-base font-medium leading-tight ${isAllowed ? 'text-white' : 'text-slate-300'}`}>{club} <Badge size="sm" variant="blue" className="ml-2">System Option</Badge></span>
+                   </label>
+                 )
+               })}
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
+            <span className="text-sm font-bold text-primary-400">{tempAllowlist.length > 0 ? `${tempAllowlist.length} Custom Rule${tempAllowlist.length === 1 ? '' : 's'} Applied` : "All clubs fully visible"}</span>
+            <div className="flex gap-3">
+               {tempAllowlist.length > 0 && (
+                 <Button variant="ghost" type="button" onClick={() => setTempAllowlist([])} className="text-red-400">Clear All</Button>
+               )}
+               <Button type="button" onClick={saveAllowlist}>Apply Custom Limits</Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+    </div>
   );
 }
 
