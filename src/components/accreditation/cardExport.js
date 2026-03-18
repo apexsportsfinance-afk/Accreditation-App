@@ -136,7 +136,14 @@ const waitForQR = (container, timeoutMs = 8000) =>
   });
 
 const renderOffscreenCard = (accreditation, event, zones) =>
-  new Promise((resolve, reject) => {
+  new Promise(async (resolve, reject) => {
+    let frontBackgroundUrl = "";
+    try {
+      const { GlobalSettingsAPI } = await import("../../lib/broadcastApi");
+      const bg = await GlobalSettingsAPI.get(`event_${event.id}_front_bg`);
+      if (bg) frontBackgroundUrl = bg;
+    } catch (e) {}
+
     const SUFFIX = `_cap_${Date.now()}`;
 
     const container = document.createElement("div");
@@ -166,6 +173,7 @@ const renderOffscreenCard = (accreditation, event, zones) =>
         event,
         zones,
         idSuffix: SUFFIX,
+        frontBackgroundUrl
       })
     );
 

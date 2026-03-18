@@ -115,6 +115,7 @@ export default function Accreditations() {
   const [emailModal, setEmailModal] = useState({ open: false, accreditation: null });
   const [imageDownloadingId, setImageDownloadingId] = useState(null);
   const [clubs, setClubs] = useState([]);
+  const [frontBackgroundUrl, setFrontBackgroundUrl] = useState("");
 
   useEffect(() => {
     const initializeData = async () => {
@@ -145,6 +146,10 @@ export default function Accreditations() {
             const clubData = await GlobalSettingsAPI.getClubs(targetEventId);
             setClubs(clubData);
           } catch { setClubs([]); }
+          try {
+            const frontBg = await GlobalSettingsAPI.get(`event_${targetEventId}_front_bg`);
+            setFrontBackgroundUrl(frontBg || "");
+          } catch { setFrontBackgroundUrl(""); }
         }
       } catch (error) {
         console.error("Failed to load initial data:", error);
@@ -188,6 +193,10 @@ export default function Accreditations() {
           const clubData = await GlobalSettingsAPI.getClubs(selectedEvent);
           setClubs(clubData);
         } catch { setClubs([]); }
+        try {
+          const frontBg = await GlobalSettingsAPI.get(`event_${selectedEvent}_front_bg`);
+          setFrontBackgroundUrl(frontBg || "");
+        } catch { setFrontBackgroundUrl(""); }
       } catch (error) {
         console.error("Failed to load event data:", error);
         toast.error("Failed to load accreditations. Please try again.");
@@ -1565,6 +1574,7 @@ export default function Accreditations() {
                     event={events.find(e => e.id === pdfPreviewModal.accreditation.eventId)}
                     zones={zones}
                     eventCategories={eventCategories}
+                    frontBackgroundUrl={frontBackgroundUrl}
                   />
                 </div>
 

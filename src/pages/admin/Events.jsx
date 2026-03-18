@@ -1621,10 +1621,23 @@ function TemplateView({ event, onClose, onSave }) {
     headerSubtitle: event.headerSubtitle || "",
     logoUrl: event.logoUrl || "",
     backTemplateUrl: event.backTemplateUrl || "",
-    sponsorLogos: event.sponsorLogos || []
+    sponsorLogos: event.sponsorLogos || [],
+    frontBackgroundUrl: ""
   });
   const [saving, setSaving] = useState(false);
   const toast = useToast();
+
+  useEffect(() => {
+    const fetchFrontBg = async () => {
+      try {
+        const bg = await GlobalSettingsAPI.get(`event_${event.id}_front_bg`);
+        if (bg) setTemplateData(prev => ({ ...prev, frontBackgroundUrl: bg }));
+      } catch (err) {
+        console.error("Failed to load front background");
+      }
+    };
+    fetchFrontBg();
+  }, [event.id]);
 
   const handleFileUpload = async (e, field) => {
     const file = e.target.files?.[0];
@@ -1641,7 +1654,9 @@ function TemplateView({ event, onClose, onSave }) {
   const save = async () => {
     setSaving(true);
     try {
-      await EventsAPI.update(event.id, templateData);
+      const { frontBackgroundUrl, ...dbTemplateData } = templateData;
+      await EventsAPI.update(event.id, dbTemplateData);
+      await GlobalSettingsAPI.set(`event_${event.id}_front_bg`, frontBackgroundUrl || "");
       toast.success("Template settings saved");
       if (onSave) onSave();
       onClose();
@@ -1705,6 +1720,30 @@ function TemplateView({ event, onClose, onSave }) {
                     </label>
                   )}
                   <p className="text-xs text-slate-500 max-w-[200px]">Transparent PNG or high-res SVG recommended. Max 2MB.</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Front Body Background</label>
+                <div className="flex items-center gap-6">
+                  {templateData.frontBackgroundUrl ? (
+                    <div className="relative group">
+                      <img src={templateData.frontBackgroundUrl} className="w-24 h-24 object-cover rounded-xl bg-white/5 p-2" alt="Front Bg" />
+                      <button 
+                        onClick={() => setTemplateData(prev => ({ ...prev, frontBackgroundUrl: "" }))}
+                        className="absolute -top-2 -right-2 p-1.5 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="w-24 h-24 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 transition-all text-slate-500">
+                      <Upload className="w-6 h-6 mb-1" />
+                      <span className="text-[10px] font-bold text-center">UPLOAD BG</span>
+                      <input type="file" accept="image/*" onChange={e => handleFileUpload(e, "frontBackgroundUrl")} className="hidden" />
+                    </label>
+                  )}
+                  <p className="text-xs text-slate-500 max-w-[200px]">Background image to fill the white space of the front card. Max 2MB.</p>
                 </div>
               </div>
             </div>

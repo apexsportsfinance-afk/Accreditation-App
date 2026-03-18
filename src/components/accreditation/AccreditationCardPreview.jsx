@@ -180,7 +180,7 @@ const AquaticsHeader = memo(function AquaticsHeader({ event }) {
   );
 });
 
-export const CardInner = memo(function CardInner({ accreditation, event, zones = [], eventCategories = [], idSuffix = "" }) {
+export const CardInner = memo(function CardInner({ accreditation, event, zones = [], eventCategories = [], idSuffix = "", frontBackgroundUrl = "" }) {
   const categoryColor = resolveCategoryColor(accreditation?.role, eventCategories);
   const matchingZone = zones.find(z => z.name?.toLowerCase() === accreditation?.role?.toLowerCase());
   const zoneColor = matchingZone?.color || null;
@@ -280,6 +280,24 @@ export const CardInner = memo(function CardInner({ accreditation, event, zones =
           </div>
         )}
 
+        {frontBackgroundUrl && (
+          <img 
+            src={frontBackgroundUrl} 
+            alt="Front Background" 
+            style={{ 
+              position: "absolute", 
+              top: "146px", 
+              left: 0, 
+              width: "100%", 
+              height: "calc(100% - 146px)", 
+              objectFit: "cover", 
+              opacity: 0.12,
+              zIndex: 0 
+            }} 
+            crossOrigin="anonymous" 
+          />
+        )}
+
         <AquaticsHeader event={event} />
         <div style={{ height: "6px", backgroundColor: "white", flexShrink: 0 }} />
 
@@ -295,7 +313,7 @@ export const CardInner = memo(function CardInner({ accreditation, event, zones =
         </div>
 
         {/* BODY */}
-        <div style={{ display: "flex", flex: 1, padding: "10px 12px 0px 12px", position: "relative", zIndex: 10, minHeight: 0, backgroundColor: "white", overflow: "hidden", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", flex: 1, padding: "10px 12px 0px 12px", position: "relative", zIndex: 10, minHeight: 0, backgroundColor: frontBackgroundUrl ? "transparent" : "white", overflow: "hidden", alignItems: "flex-start" }}>
           {/* LEFT: Photo + ID */}
           <div style={{ width: "110px", display: "flex", flexDirection: "column", alignItems: "flex-start", flexShrink: 0 }}>
             <div style={{ width: "100px", height: "120px", border: "2px solid #cbd5e1", padding: "2px", backgroundColor: "white", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)", flexShrink: 0 }}>
@@ -379,7 +397,7 @@ export const CardInner = memo(function CardInner({ accreditation, event, zones =
         </div>
 
         {/* QR CODE + ZONE BADGES — 84px white strip */}
-        <div style={{ height: "84px", width: "100%", backgroundColor: "white", display: "flex", alignItems: "center", padding: "4px 12px 4px 12px", gap: "10px", flexShrink: 0 }}>
+        <div style={{ height: "84px", width: "100%", backgroundColor: frontBackgroundUrl ? "transparent" : "white", display: "flex", alignItems: "center", padding: "4px 12px 4px 12px", gap: "10px", flexShrink: 0, position: "relative", zIndex: 10 }}>
           {/* QR Code — bottom-left */}
           <div style={{ flexShrink: 0 }}>
             {qrDataUrl ? (
@@ -436,7 +454,7 @@ export const CardInner = memo(function CardInner({ accreditation, event, zones =
         </div>
 
         {/* SPONSORS */}
-        <div style={{ height: "36px", width: "100%", borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", padding: "0 12px", flexShrink: 0, backgroundColor: "#f8fafc" }}>
+        <div style={{ height: "36px", width: "100%", borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", padding: "0 12px", flexShrink: 0, backgroundColor: frontBackgroundUrl ? "transparent" : "#f8fafc", position: "relative", zIndex: 10 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", width: "100%", height: "100%" }}>
             {event?.sponsorLogos?.length > 0 ? (
               event.sponsorLogos.slice(0, 6).map((logo, index) => (
@@ -539,11 +557,11 @@ export const CardInner = memo(function CardInner({ accreditation, event, zones =
   );
 });
 
-const AccreditationCardPreview = memo(function AccreditationCardPreview({ accreditation, event, zones = [], eventCategories = [] }) {
+const AccreditationCardPreview = memo(function AccreditationCardPreview({ accreditation, event, zones = [], eventCategories = [], frontBackgroundUrl = "" }) {
   return (
     <div id="accreditation-card-preview" style={{ display: "inline-block", fontFamily: '"Gill Sans MT", "Gill Sans", Calibri, sans-serif' }}>
       <div style={{ display: "flex", flexDirection: "row", gap: "24px", alignItems: "flex-start" }}>
-        <CardInner accreditation={accreditation} event={event} zones={zones} eventCategories={eventCategories} idSuffix="" />
+        <CardInner accreditation={accreditation} event={event} zones={zones} eventCategories={eventCategories} idSuffix="" frontBackgroundUrl={frontBackgroundUrl} />
       </div>
     </div>
   );

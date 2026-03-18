@@ -30,6 +30,13 @@ async function initLibs() {
 export const generatePdfForAccreditation = async (accreditation, event, zones) => {
   await initLibs();
 
+  let frontBackgroundUrl = "";
+  try {
+    const { GlobalSettingsAPI } = await import("./broadcastApi");
+    const bg = await GlobalSettingsAPI.get(`event_${event.id}_front_bg`);
+    if (bg) frontBackgroundUrl = bg;
+  } catch (e) {}
+
   const SUFFIX = `_email_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
   const container = document.createElement("div");
@@ -44,6 +51,7 @@ export const generatePdfForAccreditation = async (accreditation, event, zones) =
       event,
       zones,
       idSuffix: SUFFIX,
+      frontBackgroundUrl
     })
   );
 
