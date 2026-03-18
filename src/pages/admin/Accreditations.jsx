@@ -18,6 +18,7 @@ import {
   Check,
   Plus,
   AlertCircle,
+  AlertTriangle,
   Mail,
   Image as ImageIcon
 } from "lucide-react";
@@ -222,6 +223,22 @@ export default function Accreditations() {
       return true;
     });
   }, [accreditations, filters]);
+
+  const duplicateIds = useMemo(() => {
+    const ids = new Set();
+    const seen = new Map();
+    (accreditations || []).forEach(acc => {
+      if (!acc.firstName || !acc.lastName) return;
+      const key = `${acc.firstName.trim().toLowerCase()}|${acc.lastName.trim().toLowerCase()}|${acc.club?.trim().toLowerCase()}`;
+      if (seen.has(key)) {
+        ids.add(acc.id);
+        ids.add(seen.get(key));
+      } else {
+        seen.set(key, acc.id);
+      }
+    });
+    return ids;
+  }, [accreditations]);
 
   const currentEvent = events.find((e) => e.id === selectedEvent);
 
@@ -640,29 +657,39 @@ export default function Accreditations() {
       key: "name",
       header: "Name",
       sortable: true,
-      render: (row) => (
-        <div className="flex items-center gap-3">
-          {row.photoUrl ? (
-            <img
-              src={row.photoUrl}
-              alt=""
-              className="w-10 h-10 rounded-full object-cover border-2 border-primary-500/30"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-600 to-ocean-600 flex items-center justify-center">
-              <span className="text-lg font-medium text-white">
-                {row.firstName?.[0]}{row.lastName?.[0]}
-              </span>
+      render: (row) => {
+        const isDuplicate = duplicateIds.has(row.id);
+        return (
+          <div className="flex items-center gap-3">
+            {row.photoUrl ? (
+              <img
+                src={row.photoUrl}
+                alt=""
+                className="w-10 h-10 rounded-full object-cover border-2 border-primary-500/30"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-600 to-ocean-600 flex items-center justify-center">
+                <span className="text-lg font-medium text-white">
+                  {row.firstName?.[0]}{row.lastName?.[0]}
+                </span>
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-white">
+                  {row.firstName} {row.lastName}
+                </p>
+                {isDuplicate && (
+                  <span title="Potential Duplicate Registration" className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-amber-500/10 text-amber-500 uppercase tracking-wider border border-amber-500/20">
+                    <AlertTriangle className="w-3 h-3" /> Duplicate
+                  </span>
+                )}
+              </div>
+              <p className="text-lg text-slate-500">{row.email}</p>
             </div>
-          )}
-          <div>
-            <p className="font-medium text-white">
-              {row.firstName} {row.lastName}
-            </p>
-            <p className="text-lg text-slate-500">{row.email}</p>
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
       key: "role",
@@ -937,6 +964,7 @@ export default function Accreditations() {
               selectedRows={selectedRows}
               onSelectRows={setSelectedRows}
               onRowClick={(row) => setViewModal({ open: true, accreditation: row })}
+              rowClassName={(row) => duplicateIds.has(row.id) ? "bg-amber-900/10 hover:bg-amber-900/20" : ""}
             />
           )}
         </CardContent>

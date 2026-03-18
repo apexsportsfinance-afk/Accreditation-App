@@ -10,7 +10,7 @@ const tableRowVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
 };
 
-const TableRow = memo(function TableRow({ row, columns, selectable, selectedRows, onSelectRow, onRowClick }) {
+const TableRow = memo(function TableRow({ row, columns, selectable, selectedRows, onSelectRow, onRowClick, rowClassName }) {
   const isSelected = selectedRows.includes(row.id);
 
   const handleCheckboxChange = useCallback((e) => {
@@ -28,7 +28,8 @@ const TableRow = memo(function TableRow({ row, columns, selectable, selectedRows
       className={cn(
         "bg-slate-900/50 even:bg-slate-800/20 hover:bg-slate-800/70 transition-colors duration-200 ease-out",
         onRowClick && "cursor-pointer",
-        isSelected && "bg-cyan-900/20 border-l-2 border-l-cyan-500"
+        isSelected && "bg-cyan-900/20 border-l-2 border-l-cyan-500",
+        rowClassName ? rowClassName(row) : ""
       )}
       onClick={handleRowClick}
     >
@@ -60,6 +61,7 @@ export default function DataTable({
   selectedRows = [],
   onSelectRows,
   onRowClick,
+  rowClassName,
   emptyMessage = "No data available",
   className,
   isLoading = false,
@@ -286,6 +288,7 @@ export default function DataTable({
                   selectedRows={selectedRowsSetForChild}
                   onSelectRow={handleSelectRow}
                   onRowClick={onRowClick}
+                  rowClassName={rowClassName}
                 />
               ))
             )}

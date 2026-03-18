@@ -156,8 +156,8 @@ const renderOffscreenCard = (accreditation, event, zones) =>
     const root = createRoot(container);
 
     const cleanup = () => {
-      try { root.unmount(); } catch (_) {}
-      try { if (container.parentNode) document.body.removeChild(container); } catch (_) {}
+      try { root.unmount(); } catch (_) { }
+      try { if (container.parentNode) document.body.removeChild(container); } catch (_) { }
     };
 
     root.render(

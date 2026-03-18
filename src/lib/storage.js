@@ -440,6 +440,18 @@ export const AccreditationsAPI = {
   },
 
   create: async (accreditation) => {
+    // Rigid duplicate check fallback before insert
+    const dupCheck = await AccreditationsAPI.checkDuplicate(
+      accreditation.eventId,
+      accreditation.firstName,
+      accreditation.lastName,
+      accreditation.club,
+      accreditation.dateOfBirth
+    );
+    if (dupCheck.isDuplicate) {
+      throw new Error("DUPLICATE_NAME: An athlete with this profile has already registered for this event.");
+    }
+
     const dbAccreditation = mapAccreditationToDB(accreditation);
     dbAccreditation.status = "pending";
     try {
