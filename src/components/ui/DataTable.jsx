@@ -26,7 +26,7 @@ const TableRow = memo(function TableRow({ row, columns, selectable, selectedRows
     <motion.tr
       variants={tableRowVariants}
       className={cn(
-        "bg-slate-900/50 even:bg-slate-800/20 hover:bg-slate-800/70 transition-colors duration-200 ease-out",
+        "border-b border-slate-800/60 bg-transparent hover:bg-slate-800/40 transition-colors duration-150 ease-out",
         onRowClick && "cursor-pointer",
         isSelected && "bg-cyan-900/20 border-l-2 border-l-cyan-500",
         rowClassName ? rowClassName(row) : ""
@@ -44,7 +44,7 @@ const TableRow = memo(function TableRow({ row, columns, selectable, selectedRows
         </td>
       )}
       {columns.map((column) => (
-        <td key={column.key} className="px-4 py-3 text-lg text-slate-200">
+        <td key={column.key} className={cn("px-4 py-3 text-sm text-slate-300 font-medium", column.className)}>
           {column.render ? column.render(row) : row[column.key]}
         </td>
       ))}
@@ -190,19 +190,19 @@ export default function DataTable({
               placeholder="Search..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700/60 rounded-lg text-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/60 focus:border-cyan-600 transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700/60 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/60 focus:border-cyan-600 transition-all shadow-inner"
             />
           </div>
         )}
         <div className="flex items-center gap-2">
-          <span className="text-lg text-slate-500">Rows:</span>
+          <span className="text-sm font-medium text-slate-500">Rows:</span>
           <select
             value={rowsPerPage}
             onChange={(e) => {
               setRowsPerPage(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-lg text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/60"
+            className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/60"
           >
             {ROWS_PER_PAGE_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
@@ -211,10 +211,10 @@ export default function DataTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-700/50 shadow-2xl shadow-black/40">
-        <table className="w-full text-lg">
+      <div className="overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-900/40 shadow-xl shadow-black/20">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-800/95 border-b border-slate-700/60">
+            <tr className="bg-slate-800/60 border-b border-slate-700/80">
               {selectable && (
                 <th className="w-10 px-4 py-3">
                   <input
@@ -229,8 +229,9 @@ export default function DataTable({
                 <th
                   key={column.key}
                   className={cn(
-                    "px-4 py-3 text-left text-lg font-bold text-cyan-400 tracking-widest uppercase",
-                    column.sortable && "cursor-pointer select-none hover:text-cyan-200 transition-colors"
+                    "px-4 py-3 text-left text-[13px] font-bold text-slate-100 tracking-widest uppercase bg-slate-800/80",
+                    column.className,
+                    column.sortable && "cursor-pointer select-none hover:text-slate-200 transition-colors"
                   )}
                   onClick={() => column.sortable && handleSort(column.key)}
                 >
@@ -238,8 +239,8 @@ export default function DataTable({
                     {column.header}
                     {column.sortable && sortConfig.key === column.key && (
                       sortConfig.direction === "asc" ?
-                        <ChevronUp className="w-3 h-3 text-cyan-400" /> :
-                        <ChevronDown className="w-3 h-3 text-cyan-400" />
+                        <ChevronUp className="w-3.5 h-3.5 text-cyan-400" /> :
+                        <ChevronDown className="w-3.5 h-3.5 text-cyan-400" />
                     )}
                   </div>
                 </th>

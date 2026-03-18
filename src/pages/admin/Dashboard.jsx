@@ -15,7 +15,7 @@ import StatsCard from "../../components/ui/StatsCard";
 import Card, { CardHeader, CardContent } from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import { EventsAPI, AccreditationsAPI, AuditAPI } from "../../lib/storage";
-import { formatDate, getStatusColor, getRoleColor } from "../../lib/utils";
+import { formatDate } from "../../lib/utils";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -154,7 +154,7 @@ export default function Dashboard() {
                           {acc.firstName} {acc.lastName}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge className={getRoleColor(acc.role)}>
+                          <Badge>
                             {acc.role}
                           </Badge>
                           <span className="text-lg text-slate-500">
@@ -162,7 +162,7 @@ export default function Dashboard() {
                           </span>
                         </div>
                       </div>
-                      <Badge className={getStatusColor(acc.status)}>
+                      <Badge variant={acc.status === "approved" ? "success" : acc.status === "rejected" ? "danger" : "warning"}>
                         {acc.status}
                       </Badge>
                     </div>

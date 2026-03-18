@@ -2,13 +2,13 @@ import React from "react";
 import { cn } from "../../lib/utils";
 
 const variants = {
-  default: "bg-slate-800/80 border border-slate-700/50 text-slate-300 shadow-sm",
-  primary: "bg-primary-500/15 border border-primary-500/30 text-primary-400 shadow-[0_0_10px_rgba(14,165,233,0.1)]",
-  success: "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
-  warning: "bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.1)]",
-  danger: "bg-red-500/15 border border-red-500/30 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.1)]",
-  info: "bg-blue-500/15 border border-blue-500/30 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]",
-  solid: "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
+  default: "bg-gradient-to-b from-slate-700 to-slate-800 border border-slate-700 text-white shadow-[0_3px_8px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.15)] ring-1 ring-black/50 backdrop-blur-md",
+  primary: "bg-gradient-to-b from-cyan-600 to-cyan-800 border border-cyan-500/50 text-white shadow-[0_3px_12px_rgba(6,182,212,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)] ring-1 ring-black/50 backdrop-blur-md",
+  success: "bg-gradient-to-b from-emerald-600 to-emerald-800 border border-emerald-500/50 text-white shadow-[0_3px_12px_rgba(16,185,129,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)] ring-1 ring-black/50 backdrop-blur-md",
+  warning: "bg-gradient-to-b from-amber-600 to-amber-800 border border-amber-500/50 text-white shadow-[0_3px_12px_rgba(245,158,11,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)] ring-1 ring-black/50 backdrop-blur-md",
+  danger: "bg-gradient-to-b from-red-600 to-red-800 border border-red-500/50 text-white shadow-[0_3px_12px_rgba(239,68,68,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)] ring-1 ring-black/50 backdrop-blur-md",
+  info: "bg-gradient-to-b from-blue-600 to-blue-800 border border-blue-500/50 text-white shadow-[0_3px_12px_rgba(59,130,246,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)] ring-1 ring-black/50 backdrop-blur-md",
+  solid: "bg-slate-900 border border-slate-700 text-white shadow-[0_3px_12px_rgba(0,0,0,0.5)]"
 };
 
 export function Badge({ children, variant = "default", className, ...props }) {

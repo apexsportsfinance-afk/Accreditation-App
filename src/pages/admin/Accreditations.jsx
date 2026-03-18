@@ -49,16 +49,13 @@ import ComposeEmailModal from "../../components/accreditation/ComposeEmailModal"
 import { generatePdfAttachment } from "../../lib/pdfEmailHelper";
 import {
   formatDate,
-  getStatusColor,
-  getRoleColor,
   calculateAge,
   ROLES,
   ROLE_BADGE_PREFIXES,
   COUNTRIES,
   printPdfBlob,
   isExpired,
-  getExpirationLabel,
-  getExpirationStatusColor
+  getExpirationLabel
 } from "../../lib/utils";
 import {
   downloadCapturedPDF,
@@ -666,6 +663,7 @@ export default function Accreditations() {
       key: "name",
       header: "Name",
       sortable: true,
+      className: "min-w-[250px]",
       render: (row) => {
         const isDuplicate = duplicateIds.has(row.id);
         return (
@@ -678,14 +676,14 @@ export default function Accreditations() {
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-600 to-ocean-600 flex items-center justify-center">
-                <span className="text-lg font-medium text-white">
+                <span className="text-sm font-medium text-white">
                   {row.firstName?.[0]}{row.lastName?.[0]}
                 </span>
               </div>
             )}
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-medium text-white">
+                <p className="text-[15px] font-semibold text-white tracking-wide">
                   {row.firstName} {row.lastName}
                 </p>
                 {isDuplicate && (
@@ -694,7 +692,7 @@ export default function Accreditations() {
                   </span>
                 )}
               </div>
-              <p className="text-lg text-slate-500">{row.email}</p>
+              <p className="text-sm text-slate-400 mt-0.5">{row.email}</p>
             </div>
           </div>
         );
@@ -704,27 +702,30 @@ export default function Accreditations() {
       key: "role",
       header: "Role",
       sortable: true,
+      className: "w-[120px]",
       render: (row) => (
-        <Badge className={getRoleColor(row.role)}>{row.role}</Badge>
+        <Badge>{row.role}</Badge>
       )
     },
-    { key: "club", header: "Club", sortable: true },
+    { key: "club", header: "Club", sortable: true, className: "min-w-[200px]" },
     {
       key: "nationality",
       header: "Country",
       sortable: true,
+      className: "w-[100px]",
       render: (row) => <span className="text-lg">{row.nationality}</span>
     },
     {
       key: "status",
       header: "Status",
       sortable: true,
+      className: "w-[140px]",
       render: (row) => {
         const Icon = row.status === "approved" ? CheckCircle 
                    : row.status === "rejected" ? XCircle 
                    : Clock;
         return (
-          <Badge className={`flex items-center gap-1.5 w-fit ${getStatusColor(row.status)}`}>
+          <Badge variant={row.status === "approved" ? "success" : row.status === "rejected" ? "danger" : "warning"} className="flex items-center gap-1.5 w-fit">
             <Icon className="w-3.5 h-3.5" />
             {row.status}
           </Badge>
@@ -735,16 +736,16 @@ export default function Accreditations() {
       key: "expiresAt",
       header: "Expiration",
       sortable: true,
+      className: "w-[140px]",
       render: (row) => {
         if (row.status !== "approved") {
-          return <span className="text-lg text-slate-500">—</span>;
+          return <span className="text-sm text-slate-500 font-medium">—</span>;
         }
         const expired = isExpired(row.expiresAt);
         const label = getExpirationLabel(row.expiresAt);
-        const colorClass = getExpirationStatusColor(row.expiresAt);
         return (
-          <Badge className={colorClass}>
-            {expired ? "EXPIRED" : label}
+          <Badge className="whitespace-nowrap">
+            {expired ? "Expired" : label}
           </Badge>
         );
       }
@@ -753,89 +754,91 @@ export default function Accreditations() {
       key: "createdAt",
       header: "Submitted",
       sortable: true,
+      className: "w-[140px]",
       render: (row) => (
-        <span className="text-lg text-slate-400">{formatDate(row.createdAt)}</span>
+        <span className="text-sm text-slate-400 font-medium">{formatDate(row.createdAt)}</span>
       )
     },
     {
       key: "actions",
       header: "Actions",
+      className: "w-[220px]",
       render: (row) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-1.5">
           <button
             onClick={(e) => { e.stopPropagation(); setViewModal({ open: true, accreditation: row }); }}
-            className="p-2 rounded-lg hover:bg-primary-800/30 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-primary-800/30 transition-colors"
             title="View Details"
           >
-            <Eye className="w-4 h-4 text-white" />
+            <Eye className="w-3.5 h-3.5 text-white" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleOpenEdit(row); }}
-            className="p-2 rounded-lg hover:bg-blue-500/20 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-blue-500/20 transition-colors"
             title="Edit"
           >
-            <Edit className="w-4 h-4 text-blue-300" />
+            <Edit className="w-3.5 h-3.5 text-blue-300" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleApprove(row); }}
-            className="p-2 rounded-lg hover:bg-emerald-500/20 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors"
             title={row.status === "approved" ? "Re-approve" : "Approve"}
           >
-            <CheckCircle className="w-4 h-4 text-emerald-300" />
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-300" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleReject(row); }}
-            className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
             title={row.status === "rejected" ? "Already rejected" : "Reject"}
           >
-            <XCircle className="w-4 h-4 text-red-300" />
+            <XCircle className="w-3.5 h-3.5 text-red-300" />
           </button>
           {row.status === "approved" && (
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); handlePreviewPDF(row); }}
-                className="p-2 rounded-lg hover:bg-primary-500/20 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-primary-500/20 transition-colors"
                 title="Preview and Download PDF"
               >
-                <Eye className="w-4 h-4 text-cyan-300" />
+                <Eye className="w-3.5 h-3.5 text-cyan-300" />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setBadgeGeneratorModal({ open: true, accreditation: row }); }}
-                className="p-2 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors"
                 title="Generate Simple Badge with QR"
               >
-                <Download className="w-4 h-4 text-emerald-300" />
+                <Download className="w-3.5 h-3.5 text-emerald-300" />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleOpenShareLink(row); }}
-                className="p-2 rounded-lg hover:bg-cyan-500/20 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-cyan-500/20 transition-colors"
                 title="Share Link"
               >
-                <Link className="w-4 h-4 text-cyan-300" />
+                <Link className="w-3.5 h-3.5 text-cyan-300" />
               </button>
             </>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); handleDownloadPhoto(row); }}
-            className="p-2 rounded-lg hover:bg-orange-500/20 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-orange-500/20 transition-colors"
             title="Download Uploaded Photo"
             disabled={!row.photoUrl || imageDownloadingId === row.id}
           >
-            <ImageIcon className={`w-4 h-4 ${row.photoUrl ? "text-orange-300" : "text-slate-600"}`} />
+            <ImageIcon className={`w-3.5 h-3.5 ${row.photoUrl ? "text-orange-300" : "text-slate-600"}`} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setEmailModal({ open: true, accreditation: row }); }}
-            className="p-2 rounded-lg hover:bg-violet-500/20 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-violet-500/20 transition-colors"
             title="Send Email"
           >
-            <Mail className="w-4 h-4 text-violet-300" />
+            <Mail className="w-3.5 h-3.5 text-violet-300" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleOpenDeleteConfirm(row); }}
-            className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
             title="Delete"
           >
-            <Trash2 className="w-4 h-4 text-red-300" />
+            <Trash2 className="w-3.5 h-3.5 text-red-300" />
           </button>
         </div>
       )
@@ -1066,10 +1069,10 @@ export default function Accreditations() {
                   {viewModal.accreditation.firstName} {viewModal.accreditation.lastName}
                 </h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className={getRoleColor(viewModal.accreditation.role)}>
+                  <Badge>
                     {viewModal.accreditation.role}
                   </Badge>
-                  <Badge className={getStatusColor(viewModal.accreditation.status)}>
+                  <Badge variant={viewModal.accreditation.status === "approved" ? "success" : viewModal.accreditation.status === "rejected" ? "danger" : "warning"}>
                     {viewModal.accreditation.status}
                   </Badge>
                 </div>
@@ -1104,7 +1107,7 @@ export default function Accreditations() {
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-lg font-semibold text-emerald-400">Approval Details</h4>
                   {viewModal.accreditation.expiresAt && (
-                    <Badge className={getExpirationStatusColor(viewModal.accreditation.expiresAt)}>
+                    <Badge className="whitespace-nowrap">
                       {getExpirationLabel(viewModal.accreditation.expiresAt)}
                     </Badge>
                   )}
