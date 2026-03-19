@@ -34,15 +34,44 @@ export async function parseCompetitionFile(file, type = 'heat_sheet') {
 }
 
 async function parseCompetitionExcel(file, type = 'heat_sheet') {
-  const arrayBuffer = await file.arrayBuffer();
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
-  // Parse into an array of arrays
-  const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    // Parse into an array of arrays
+    const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-  const results = [];
-  let currentEventCode = null;
+    // PRE-PROCESSING: Expand rows with newline characters in cells (mashed Heat/Athlete cells)
+    const rows = [];
+    for (const row of rawRows) {
+        if (!row || !row.length) continue;
+        let maxLines = 1;
+        for (const cell of row) {
+            if (typeof cell === 'string') {
+                const lines = cell.split(/\r?\n/);
+                if (lines.length > maxLines) maxLines = lines.length;
+            }
+        }
+        if (maxLines === 1) {
+            rows.push(row);
+        } else {
+            for (let i = 0; i < maxLines; i++) {
+                const newRow = row.map(cell => {
+                    if (typeof cell === 'string') {
+                        const lines = cell.split(/\r?\n/);
+                        return lines[i] !== undefined ? lines[i] : "";
+                    }
+                    return i === 0 ? cell : "";
+                });
+                // Only push if the row actually has text
+                if (newRow.join("").trim()) rows.push(newRow);
+            }
+        }
+    }
+
+    const results = [];
+    let currentEventCode = null;
   let currentEventName = null;
   let currentHeat = null;
   let columnIndexes = { lane: -1, name: -1, age: -1, team: -1, seedTime: -1, finalTime: -1, place: -1 };
@@ -143,7 +172,12 @@ async function parseCompetitionExcel(file, type = 'heat_sheet') {
         }
     }
   }
+  console.log("[DEBUG] Excel output rows:", results.length);
   return results;
+} catch (err) {
+  console.error("FATAL EXCEL PARSER ERROR:", err);
+  throw new Error(`Excel grid extraction failed: ${err.message}`);
+}
 }
 
 async function parseCompetitionHtml(file, type = 'heat_sheet') {
@@ -207,7 +241,8 @@ async function parseCompetitionHtml(file, type = 'heat_sheet') {
     const fullRowText = cells.join(" ").toLowerCase();
 
     // 1. Detect Event Header (e.g. "Event 101 Girls 12 & Over 1500 LC Meter Freestyle")
-    if (fullRowText.includes("event") && cells.some(c => (/event\s+\d+/i).test(c))) {
+    // Do not trigger on Continuation Headers which wrap the event in parenthesis like "(Event 101"
+    if (fullRowText.includes("event") && cells.some(c => (/event\s+\d+/i).test(c)) && !fullRowText.includes("(event")) {
         const eventStr = allRows[i].join(" "); // keep original casing
         const eventMatch = eventStr.match(/Event\s+(\d+)\s+(.+)/i);
         if (eventMatch) {
@@ -219,7 +254,8 @@ async function parseCompetitionHtml(file, type = 'heat_sheet') {
     }
 
     // 2. Detect standalone Heat Header (e.g. "Heat" in cell 0, "2 of 2 Timed Finals" in cell 1)
-    if (cells.length <= 4 && cells[0].toLowerCase().includes('heat')) {
+    if (cells[0].match(/^heat\b/i) && !cells.some(c => /^\d{1,2}:\d{2}\.\d{2}/.test(c))) {
+        // Find "Heat 2" or "Heat 1 of 2" anywhere in the row string
         let hMatch = cells.join(" ").match(/heat\s+(\d+)/i);
         if (!hMatch && cells[1] && cells[1].includes("of")) {
             hMatch = cells[1].match(/^(\d+)/);
@@ -230,8 +266,8 @@ async function parseCompetitionHtml(file, type = 'heat_sheet') {
         continue;
     }
 
-    // 3. Detect Athlete Row (Typically 5+ columns with Lane, Name, Age, Team, Seed, Final)
-    if (cells.length >= 5 && !fullRowText.includes('event') && !fullRowText.includes('lane')) {
+    // 3. Detect Athlete Row (Typically 4+ columns with Lane, Name, [Age], Team, Seed, Final)
+    if (cells.length >= 4 && !fullRowText.includes('event') && !fullRowText.includes('lane')) {
         let laneVal = null;
         let rankVal = null;
         let nextHeat = null;
@@ -274,6 +310,11 @@ async function parseCompetitionHtml(file, type = 'heat_sheet') {
 
             let ageVal = rawAge ? rawAge.replace(/\D/g, '') : null;
 
+            // Apply newly discovered heat for the current and subsequent rows
+            if (nextHeat !== null) {
+                currentHeat = nextHeat;
+            }
+
             results.push({
                 eventCode: currentEventCode,
                 eventName: currentEventName,
@@ -286,11 +327,6 @@ async function parseCompetitionHtml(file, type = 'heat_sheet') {
                 resultTime: rawFinal && rawFinal.length > 3 ? rawFinal : null,
                 rank: rankVal
             });
-
-            // Apply newly discovered heat for subsequent rows
-            if (nextHeat !== null) {
-                currentHeat = nextHeat;
-            }
         }
     }
   }

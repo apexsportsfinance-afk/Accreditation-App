@@ -498,14 +498,18 @@ export const AthleteEventsAPI = {
         return { accId, eventCode, round };
       });
 
-    // Chunk cleanup if too many, but for a single PDF upload it's usually manageable
-    for (const c of uniqueCleanups) {
-      await supabase
-        .from("athlete_events")
-        .delete()
-        .eq("accreditation_id", c.accId)
-        .eq("event_code", c.eventCode)
-        .eq("round", c.round);
+    // Chunk cleanup to prevent network bottlenecking (run 50 concurrently)
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < uniqueCleanups.length; i += CHUNK_SIZE) {
+      const chunk = uniqueCleanups.slice(i, i + CHUNK_SIZE);
+      await Promise.all(chunk.map(c => 
+        supabase
+          .from("athlete_events")
+          .delete()
+          .eq("accreditation_id", c.accId)
+          .eq("event_code", c.eventCode)
+          .eq("round", c.round)
+      ));
     }
     
     // 2. Insert the new best-match rows
@@ -553,6 +557,38 @@ export const AthleteEventsAPI = {
       return [];
     }
     return data || [];
+  },
+
+  clearEventsForMeet: async (eventId) => {
+    if (!eventId) return 0;
+    
+    // 1. Get all accreditations for this event
+    const { data: accData, error: accErr } = await supabase
+      .from("accreditations")
+      .select("id")
+      .eq("event_id", eventId);
+      
+    if (accErr || !accData || accData.length === 0) return 0;
+    
+    const accIds = accData.map(a => a.id);
+    let deletedCount = 0;
+    
+    // 2. Delete athlete_events in chunks to avoid URL length limits on PostgREST
+    const CHUNK_SIZE = 200;
+    for (let i = 0; i < accIds.length; i += CHUNK_SIZE) {
+      const chunk = accIds.slice(i, i + CHUNK_SIZE);
+      const { data, error } = await supabase
+        .from("athlete_events")
+        .delete()
+        .in("accreditation_id", chunk)
+        .select("accreditation_id");
+        
+      if (!error && data) {
+        deletedCount += data.length;
+      }
+    }
+    
+    return deletedCount;
   }
 };
 

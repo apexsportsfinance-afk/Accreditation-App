@@ -101,11 +101,9 @@ export default function EventPdfSlots({ eventId, onToast }) {
           
           const verifiedMatches = matchedEvents.filter(e => e.matched).length;
           onToast?.(`Saved ${count} records (${verifiedMatches} verified matches).`, "success");
-          setTimeout(() => onToast?.(null), 5000);
         } catch (parseErr) {
           console.error(`${slot.label} Parse Error:`, parseErr);
           onToast?.(`Failed to parse ${slot.label}: ${parseErr.message}`, "warning");
-          setTimeout(() => onToast?.(null), 5000);
         }
       }
 
@@ -113,10 +111,8 @@ export default function EventPdfSlots({ eventId, onToast }) {
 
       setTimestamps(prev => ({ ...prev, [slot.key]: now }));
       onToast?.(`${slot.label} file uploaded`, "success");
-      setTimeout(() => onToast?.(null), 5000);
     } catch (err) {
       onToast?.("Upload failed: " + err.message, "error");
-      setTimeout(() => onToast?.(null), 5000);
     } finally {
       setUploading(prev => ({ ...prev, [slot.key]: false }));
       e.target.value = "";
@@ -124,13 +120,25 @@ export default function EventPdfSlots({ eventId, onToast }) {
   };
 
   const handleRemove = async (slot) => {
-    await GlobalSettingsAPI.setMany({
-      [`event_${eventId}_${slot.key}_url`]: "",
-      [`event_${eventId}_${slot.key}_updated_at`]: ""
-    });
-    setSlots(prev => ({ ...prev, [slot.key]: null }));
-    setTimestamps(prev => ({ ...prev, [slot.key]: null }));
-    onToast?.(`${slot.label} file removed`, "success");
+    try {
+      if (slot.key === "heat_sheet" || slot.key === "event_result") {
+         const { AthleteEventsAPI } = await import('../../lib/broadcastApi');
+         const deletedCount = await AthleteEventsAPI.clearEventsForMeet(eventId);
+         if (deletedCount > 0) {
+            onToast?.(`Cleared ${deletedCount} cached athlete events`, "info");
+         }
+      }
+
+      await GlobalSettingsAPI.setMany({
+        [`event_${eventId}_${slot.key}_url`]: "",
+        [`event_${eventId}_${slot.key}_updated_at`]: ""
+      });
+      setSlots(prev => ({ ...prev, [slot.key]: null }));
+      setTimestamps(prev => ({ ...prev, [slot.key]: null }));
+      onToast?.(`${slot.label} file removed`, "success");
+    } catch (err) {
+      onToast?.(`Error removing file: ${err.message}`, "error");
+    }
   };
 
   return (
