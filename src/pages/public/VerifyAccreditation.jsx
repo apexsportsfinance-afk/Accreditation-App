@@ -12,6 +12,48 @@ import { computeExpiryStatus, formatEventDateTime } from "../../lib/expiryUtils"
 import { getCountryFlag, COUNTRIES, calculateAge } from "../../lib/utils";
 import { toast } from "sonner";
 
+// Helper function to calculate exact split time between PB and Record
+const parseTimeSeconds = (timeStr) => {
+  if (!timeStr || timeStr === "NT" || timeStr === "NP") return null;
+  let clean = timeStr.trim().replace(/[A-Za-z]/g, '');
+  if (!clean) return null;
+  if (clean.includes(':')) {
+    const parts = clean.split(':');
+    if (parts.length >= 2) {
+      return (parseInt(parts[0], 10) * 60) + parseFloat(parts[1]);
+    }
+  }
+  return parseFloat(clean);
+};
+
+const formatTimeDiff = (pbStr, recordStr) => {
+  const pbSec = parseTimeSeconds(pbStr);
+  const recSec = parseTimeSeconds(recordStr);
+  if (pbSec === null || recSec === null || isNaN(pbSec) || isNaN(recSec)) return null;
+  
+  // The user requested PB differentials to map visually as Negative if they are slower
+  // (Meaning they must DROP [X] seconds to hit the Record)
+  // If their PB is faster, they are OVER the record, representing a Positive (+) gap.
+  const diff = recSec - pbSec; 
+  const isFaster = diff >= 0; // if difference is positive, PB was lower (faster)
+  const sign = diff > 0 ? "+" : diff < 0 ? "-" : "";
+  const absDiff = Math.abs(diff);
+  
+  let diffDisplay;
+  if (absDiff >= 60) {
+     const m = Math.floor(absDiff / 60);
+     let s = (absDiff % 60).toFixed(2);
+     if (s < 10) s = "0" + s;
+     diffDisplay = `${sign}${m}:${s}`;
+  } else {
+     diffDisplay = `${sign}${absDiff.toFixed(2)}`;
+  }
+  return {
+    text: diffDisplay,
+    isFaster: isFaster
+  };
+};
+
 export default function VerifyAccreditation() {
   const { id } = useParams();
   const [data, setData] = useState(null);
@@ -589,11 +631,27 @@ export default function VerifyAccreditation() {
                                    )}
                                </div>
                                <div className="flex items-center justify-end">
-                                   {ev.seed_time && (
-                                      <span className="bg-gray-100 text-gray-600 border border-gray-200 px-2 py-0.5 rounded text-[10px] font-bold shadow-sm uppercase">
-                                        PB: {ev.seed_time}
-                                      </span>
-                                   )}
+                                   {ev.seed_time && (() => {
+                                      let diffItem = null;
+                                      if (ageRecord && ageRecord.time && ev.seed_time !== "NT" && ev.seed_time !== "NP") {
+                                          const diffData = formatTimeDiff(ev.seed_time, ageRecord.time);
+                                          if (diffData) {
+                                              diffItem = (
+                                                  <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] font-black tracking-wide ${diffData.isFaster ? 'bg-emerald-100 text-emerald-800 border-none' : 'bg-rose-100 text-rose-700 border-none'}`}>
+                                                    {diffData.text}
+                                                  </span>
+                                              );
+                                          }
+                                      }
+                                      return (
+                                        <div className="flex items-center">
+                                          <span className="bg-gray-100 text-gray-600 border border-gray-200 pl-2 pr-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm uppercase flex items-center">
+                                            PB: {ev.seed_time}
+                                            {diffItem}
+                                          </span>
+                                        </div>
+                                      );
+                                   })()}
                                </div>
                             </div>
                           )}
