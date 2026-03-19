@@ -279,7 +279,8 @@ export const AccreditationsAPI = {
     const { data, error } = await supabase
       .from("accreditations")
       .select("event_id, status")
-      .in("event_id", eventIds);
+      .in("event_id", eventIds)
+      .limit(50000);
     if (error) {
       console.error("getCountsByEventIds error:", error);
       return {};
