@@ -373,9 +373,28 @@ export default function Accreditations() {
       const zoneCodeString = approveData.zoneCodes.join(",");
       await AccreditationsAPI.approve(accreditation.id, zoneCodeString, badgeNumber);
       await refreshAccreditations();
+
       if (approveData.sendEmail) {
-        // Generate PDF attachment for approved accreditation
-        const updatedAcc = { ...accreditation, badgeNumber, zoneCode: zoneCodeString, status: "approved" };
+        // Fetch the saved record from DB to get the real accreditation_id (ACC-2025-xxx)
+        // The QR code MUST encode the same value the verify page looks up by.
+        let freshAccreditation = null;
+        try {
+          freshAccreditation = await AccreditationsAPI.getById(accreditation.id);
+        } catch (fetchErr) {
+          console.warn("[Approve] Failed to re-fetch accreditation after approve:", fetchErr);
+        }
+
+        // Use the DB-driven accreditationId for the QR; fall back to local if fetch fails
+        const realAccreditationId = freshAccreditation?.accreditationId || accreditation.accreditationId;
+        const updatedAcc = {
+          ...accreditation,
+          ...(freshAccreditation || {}),
+          badgeNumber,
+          zoneCode: zoneCodeString,
+          status: "approved",
+          accreditationId: realAccreditationId
+        };
+
         let pdfData = null;
         try {
           pdfData = await generatePdfAttachment(updatedAcc, eventData, zones);
@@ -392,7 +411,7 @@ export default function Accreditations() {
             eventLocation: eventData?.location || "",
             eventDates: eventData ? `${eventData.startDate} - ${eventData.endDate}` : "",
             role: accreditation.role,
-            accreditationId: badgeNumber,
+            accreditationId: realAccreditationId || badgeNumber,
             badgeNumber: badgeNumber,
             zoneCode: zoneCodeString,
             reportingTimes: eventData?.reportingTimes || "",
@@ -413,6 +432,7 @@ export default function Accreditations() {
         toast.success(`Accreditation ${isReApproval ? "re-approved" : "approved"}! (Email skipped)`);
       }
       setApproveModal({ open: false, accreditation: null });
+
     } catch (error) {
       console.error("Approval error:", error);
       toast.error("Failed to complete approval. Please try again.");
@@ -518,7 +538,7 @@ export default function Accreditations() {
                 eventLocation: eventData?.location || "",
                 eventDates: eventData ? `${eventData.startDate} - ${eventData.endDate}` : "",
                 role: acc.role,
-                accreditationId: acc.badgeNumber || acc.accreditationId,
+                accreditationId: acc.accreditationId || acc.badgeNumber,
                 badgeNumber: acc.badgeNumber || "",
                 zoneCode: acc.zoneCode || zoneCodeString,
                 reportingTimes: eventData?.reportingTimes || "",
@@ -1006,6 +1026,7 @@ export default function Accreditations() {
                 role: data.role,
                 email: data.email,
                 photoUrl: data.photoUrl,
+                badgeColor: data.badgeColor,
                 zoneCode: data.zoneCode || (data.zoneCodes ? data.zoneCodes.join(",") : "")
               };
               updatePayload.expiresAt = data.expiresAt !== undefined ? data.expiresAt : null;

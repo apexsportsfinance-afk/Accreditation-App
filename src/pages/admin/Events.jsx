@@ -28,7 +28,10 @@ import {
   Activity,
   Download,
   Palette,
-  Shield
+  Shield,
+  Lock,
+  QrCode,
+  Trash
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { extractTextFromPdf as parsePDFText } from "../../lib/pdfParser";
@@ -48,6 +51,7 @@ import AttendanceSheet from "../../components/attendance/AttendanceSheet";
 import AttendanceStats from "../../components/accreditation/AttendanceStats";
 import AttendanceBadge from "../../components/accreditation/AttendanceBadge";
 import ExportModal from "../../components/ui/ExportModal";
+import { getInviteLinks, createInviteLink, toggleInviteLink, deleteInviteLink, getLinkStatus } from "../../lib/inviteLinksApi";
 const DOCUMENT_OPTIONS = [
   { id: "picture", label: "Picture" },
   { id: "passport", label: "Passport" },
@@ -672,6 +676,26 @@ export default function Events() {
             </div>
           );
         })()
+      ) : subpage === "invite-links" ? (
+        /* --- INVITE LINKS SUB-PAGE --- */
+        (() => {
+          const event = events.find(e => e.id === id);
+          if (!event) return null;
+          return (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 mb-4">
+                <button
+                  onClick={() => navigate(`/admin/events/${id}`)}
+                  className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <h2 className="text-2xl font-bold text-white">Private Invite Links</h2>
+              </div>
+              <InviteLinksView event={event} />
+            </div>
+          );
+        })()
       ) : (
         /* --- DETAIL VIEW (DEFAULT) --- */
         (() => {
@@ -696,14 +720,14 @@ export default function Events() {
             >
               {/* Event Info Card */}
               <Card className="border-slate-800 overflow-hidden">
-                <div className="h-2 bg-gradient-to-r from-primary-600 via-primary-500 to-cyan-500" />
-                <CardContent className="p-8 space-y-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-4">
-                      <div className="flex flex-col gap-4">
+                <div className="h-1 bg-gradient-to-r from-primary-600 via-primary-500 to-cyan-500" />
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-3">
-                          <h2 className="text-3xl font-bold text-white">{event.name}</h2>
-                          <div className="ms-12 flex items-center gap-3">
+                          <h2 className="text-xl font-bold text-white">{event.name}</h2>
+                          <div className="ms-4 flex items-center gap-3">
                             <button 
                               onClick={async () => {
                                 try {
@@ -735,19 +759,19 @@ export default function Events() {
                         </div>
 
                         {!event.registrationOpen && (
-                          <motion.div 
+                          <motion.div
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6 max-w-xl group/msg shadow-2xl backdrop-blur-xl"
+                            className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3 max-w-xl group/msg shadow-xl backdrop-blur-xl"
                           >
-                            <div className="flex items-start gap-4">
-                              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0 text-amber-400 border border-amber-500/20">
-                                <AlertCircle className="w-5 h-5" />
+                            <div className="flex items-start gap-3">
+                              <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0 text-amber-400 border border-amber-500/20">
+                                <AlertCircle className="w-3.5 h-3.5" />
                               </div>
-                              <div className="flex-1 space-y-4">
+                              <div className="flex-1 space-y-2">
                                 <div className="space-y-1">
                                   <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
                                       Closed Notification Message
                                     </label>
                                     <Edit className="w-3 h-3 text-slate-600" />
@@ -756,8 +780,8 @@ export default function Events() {
                                     value={localClosedMessage}
                                     onChange={(e) => setLocalClosedMessage(e.target.value)}
                                     placeholder="e.g. Registration is currently closed. Please contact info@apex.com"
-                                    className="w-full bg-transparent border-none p-0 text-base text-white placeholder:text-slate-600 focus:ring-0 resize-none min-h-[60px] font-light leading-relaxed scrollbar-hide"
-                                    rows={2}
+                                    className="w-full bg-transparent border-none p-0 text-sm text-white placeholder:text-slate-600 focus:ring-0 resize-none min-h-[36px] font-light leading-relaxed scrollbar-hide"
+                                    rows={1}
                                   />
                                 </div>
                                 <div className="flex justify-end">
@@ -789,8 +813,8 @@ export default function Events() {
                         )}
                       </div>
                       
-                      <p className="text-xl text-slate-400 font-light flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-primary-400" />
+                      <p className="text-sm text-slate-400 font-light flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-primary-400" />
                         {event.location} • {formatDate(event.startDate)} - {formatDate(event.endDate)}
                       </p>
                     </div>
@@ -803,77 +827,77 @@ export default function Events() {
 
                   {event.description && (
                     <div className="max-w-3xl">
-                      <p className="text-lg text-slate-400 leading-relaxed font-extralight italic">
+                      <p className="text-sm text-slate-400 leading-relaxed font-extralight italic">
                         "{event.description}"
                       </p>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-800">
-                    <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-800">
+                    <div className="space-y-3">
                       <div>
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-2">Registration Link</label>
-                        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 group">
-                          <LinkIcon className="w-5 h-5 text-primary-400" />
-                          <code className="text-primary-300 flex-1 truncate">{link}</code>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block mb-1.5">Registration Link</label>
+                        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 group">
+                          <LinkIcon className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                          <code className="text-primary-300 flex-1 truncate text-sm">{link}</code>
                           <button
                             onClick={() => copyRegistrationLink(event.slug)}
-                            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
                             title="Copy link"
                           >
-                            {copiedSlug === event.slug ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
+                            {copiedSlug === event.slug ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                           </button>
-                          <a href={link} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
-                            <ExternalLink className="w-5 h-5" />
+                          <a href={link} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
+                            <ExternalLink className="w-4 h-4" />
                           </a>
                         </div>
                       </div>
 
-                      <div className="pt-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-2">QR Scanner Link</label>
-                        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 group">
-                          <Activity className="w-5 h-5 text-cyan-400" />
-                          <code className="text-cyan-300 flex-1 truncate">{getScannerLink(event.id)}</code>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block mb-1.5">QR Scanner Link</label>
+                        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 group">
+                          <Activity className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                          <code className="text-cyan-300 flex-1 truncate text-sm">{getScannerLink(event.id)}</code>
                           <button
                             onClick={() => copyScannerLink(event.id)}
-                            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
                             title="Copy link"
                           >
-                            {copiedScannerEventId === event.id ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
+                            {copiedScannerEventId === event.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                           </button>
-                          <a href={getScannerLink(event.id)} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
-                            <ExternalLink className="w-5 h-5" />
+                          <a href={getScannerLink(event.id)} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
+                            <ExternalLink className="w-4 h-4" />
                           </a>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-slate-400 bg-slate-800/50 px-3 py-2 rounded-lg border border-slate-800">
-                          <FileText className="w-4 h-4 text-primary-400" />
-                          <span className="text-sm">Docs: {getDocumentLabel(event.requiredDocuments)}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-slate-400 bg-slate-800/50 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                          <FileText className="w-3.5 h-3.5 text-primary-400" />
+                          <span className="text-xs">Docs: {getDocumentLabel(event.requiredDocuments)}</span>
                         </div>
                         {event.backTemplateUrl && (
-                          <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
-                            <FileImage className="w-4 h-4" />
-                            <span className="text-sm">Template Configured</span>
+                          <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
+                            <FileImage className="w-3.5 h-3.5" />
+                            <span className="text-xs">Template Configured</span>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 flex items-center justify-around">
+                    <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 flex items-center justify-around">
                       <div className="text-center">
-                        <p className="text-3xl font-bold text-white mb-1">{counts.total}</p>
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Total</p>
+                        <p className="text-2xl font-bold text-white mb-0.5">{counts.total}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total</p>
                       </div>
-                      <div className="w-px h-12 bg-slate-800" />
+                      <div className="w-px h-8 bg-slate-800" />
                       <div className="text-center">
-                        <p className="text-3xl font-bold text-amber-500 mb-1">{counts.pending}</p>
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Pending</p>
+                        <p className="text-2xl font-bold text-amber-500 mb-0.5">{counts.pending}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Pending</p>
                       </div>
-                      <div className="w-px h-12 bg-slate-800" />
+                      <div className="w-px h-8 bg-slate-800" />
                       <div className="text-center">
-                        <p className="text-3xl font-bold text-emerald-500 mb-1">{counts.approved}</p>
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Approved</p>
+                        <p className="text-2xl font-bold text-emerald-500 mb-0.5">{counts.approved}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Approved</p>
                       </div>
                     </div>
                   </div>
@@ -881,7 +905,7 @@ export default function Events() {
               </Card>
 
               {/* Action Sections */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <DetailActionCard 
                   title="Categories" 
                   description="Manage roles, registration fees, and badge colors for this event"
@@ -909,6 +933,13 @@ export default function Events() {
                   icon={Activity}
                   color="from-cyan-600 to-sky-500"
                   onClick={() => navigate(`/admin/events/${id}/attendance`)}
+                />
+                <DetailActionCard 
+                  title="Private Invite Links" 
+                  description="Generate secret registration links for late submissions without opening main registration"
+                  icon={Lock}
+                  color="from-violet-600 to-purple-500"
+                  onClick={() => navigate(`/admin/events/${id}/invite-links`)}
                 />
               </div>
             </motion.div>
@@ -1148,58 +1179,42 @@ export default function Events() {
 // --- SUB-COMPONENTS ---
 function DetailActionCard({ title, description, icon: Icon, color, onClick }) {
   return (
-    <motion.button 
-      whileHover={{ y: -8, scale: 1.02 }}
+    <motion.button
+      whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className="relative group w-full text-left"
     >
-      {/* Premium Glassmorphic Container */}
-      <div className="relative overflow-hidden rounded-3xl p-8 h-full bg-slate-900/40 backdrop-blur-xl border border-white/5 group-hover:border-white/20 transition-all duration-500 shadow-2xl">
-        
-        {/* Dynamic Background Glow Effect */}
+      <div className="relative overflow-hidden rounded-2xl p-5 h-full bg-slate-900/40 backdrop-blur-xl border border-white/5 group-hover:border-white/20 transition-all duration-500 shadow-xl">
         <div className={`absolute -inset-24 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-10 blur-[80px] transition-opacity duration-700 pointer-events-none`} />
-        
-        {/* Internal Glow on Hover */}
-        <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl ${color} opacity-0 group-hover:opacity-20 blur-3xl transition-opacity duration-500`} />
-
-        {/* Action Icon with Internal Depth */}
-        <div className="relative mb-8">
-          <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-white shadow-lg shadow-black/40 group-hover:shadow-${color.split('-')[1]}-500/20 transition-all duration-500 overflow-hidden`}>
-            {/* Subtle internal glow for the icon */}
+        <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${color} opacity-0 group-hover:opacity-20 blur-3xl transition-opacity duration-500`} />
+        <div className="relative mb-4">
+          <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white shadow-lg transition-all duration-500 overflow-hidden`}>
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Icon className="w-8 h-8 relative z-10" />
+            <Icon className="w-5 h-5 relative z-10" />
           </div>
-          
-          {/* Animated rings around icon on hover */}
-          <div className={`absolute -inset-2 border-2 border-white/5 rounded-3xl opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 pointer-events-none`} />
         </div>
-        
-        {/* Content Hierarchy */}
-        <div className="relative z-10 space-y-3">
-          <h3 className="text-2xl font-black text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/60 transition-all duration-300 uppercase tracking-tighter leading-none">
+        <div className="relative z-10 space-y-1.5">
+          <h3 className="text-base font-black text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/60 transition-all duration-300 uppercase tracking-tighter leading-none">
             {title}
           </h3>
-          <p className="text-slate-400 text-sm font-light leading-relaxed group-hover:text-slate-300 transition-colors duration-300 max-w-[90%]">
+          <p className="text-slate-400 text-xs font-light leading-relaxed group-hover:text-slate-300 transition-colors duration-300">
             {description}
           </p>
         </div>
-
-        {/* Enhanced Call-to-Action Indicator */}
-        <div className="mt-10 flex items-center gap-3">
-          <div className="h-[2px] w-12 bg-white/5 group-hover:w-16 group-hover:bg-gradient-to-r group-hover:from-primary-500 group-hover:to-transparent transition-all duration-700" />
-          <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-primary-400 transition-colors duration-500">
+        <div className="mt-4 flex items-center gap-2">
+          <div className="h-[2px] w-8 bg-white/5 group-hover:w-12 group-hover:bg-gradient-to-r group-hover:from-primary-500 group-hover:to-transparent transition-all duration-700" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-primary-400 transition-colors duration-500">
             Configure Module
           </span>
-          <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-primary-400 group-hover:translate-x-2 transition-all duration-500" />
+          <ArrowRight className="w-3 h-3 text-slate-600 group-hover:text-primary-400 group-hover:translate-x-1 transition-all duration-500" />
         </div>
       </div>
-
-      {/* Outer Border Glow Support */}
-      <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${color} opacity-0 group-hover:opacity-5 blur-xl transition-opacity duration-700 -z-10`} />
+      <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${color} opacity-0 group-hover:opacity-5 blur-xl transition-opacity duration-700 -z-10`} />
     </motion.button>
   );
 }
+
 
 // --- SUB-PAGE VIEWS ---
 
@@ -2292,3 +2307,269 @@ function StatCard({ label, value, icon: Icon, color }) {
     </Card>
   );
 }
+
+function InviteLinksView({ event }) {
+  const toast = useToast();
+  const [links, setLinks] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [showCreate, setShowCreate] = React.useState(false);
+  const [creating, setCreating] = React.useState(false);
+  const [copiedId, setCopiedId] = React.useState(null);
+  const [form, setForm] = React.useState({
+    label: "", mode: "multi", maxUses: "", expiresIn: "48h", customExpiry: ""
+  });
+
+  const loadLinks = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getInviteLinks(event.id);
+      setLinks(data.reverse()); // newest first
+    } catch { setLinks([]); }
+    finally { setLoading(false); }
+  }, [event.id]);
+
+  React.useEffect(() => { loadLinks(); }, [loadLinks]);
+
+  const getExpiryDate = () => {
+    if (form.expiresIn === "never") return null;
+    if (form.expiresIn === "custom") return form.customExpiry ? new Date(form.customExpiry).toISOString() : null;
+    const hours = { "12h": 12, "24h": 24, "48h": 48, "72h": 72, "168h": 168 }[form.expiresIn] || 48;
+    const d = new Date();
+    d.setHours(d.getHours() + hours);
+    return d.toISOString();
+  };
+
+  const handleCreate = async () => {
+    if (!form.label.trim()) { toast.error("Label is required"); return; }
+    setCreating(true);
+    try {
+      await createInviteLink(event.id, {
+        label: form.label,
+        mode: form.mode,
+        maxUses: form.mode === "single" ? 1 : (form.maxUses ? parseInt(form.maxUses) : null),
+        expiresAt: getExpiryDate()
+      });
+      toast.success("Invite link created!");
+      setShowCreate(false);
+      setForm({ label: "", mode: "multi", maxUses: "", expiresIn: "48h", customExpiry: "" });
+      loadLinks();
+    } catch (err) {
+      toast.error("Failed to create link: " + (err.message || ""));
+    } finally { setCreating(false); }
+  };
+
+  const handleToggle = async (link) => {
+    try {
+      await toggleInviteLink(event.id, link.id, !link.isActive);
+      toast.success(link.isActive ? "Link deactivated" : "Link activated");
+      loadLinks();
+    } catch { toast.error("Failed to toggle link"); }
+  };
+
+  const handleDelete = async (link) => {
+    if (!window.confirm(`Delete invite link "${link.label}"?`)) return;
+    try {
+      await deleteInviteLink(event.id, link.id);
+      toast.success("Invite link deleted");
+      loadLinks();
+    } catch { toast.error("Failed to delete link"); }
+  };
+
+  const getInviteUrl = (link) =>
+    `${window.location.origin}/register/${event.slug}/invite/${link.token}`;
+
+  const handleCopy = async (link) => {
+    const url = getInviteUrl(link);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopiedId(link.id);
+      toast.success("Invite link copied!");
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch { toast.error("Copy failed"); }
+  };
+
+  const statusColors = {
+    active: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+    inactive: "bg-slate-700/30 border-slate-600/30 text-slate-500",
+    expired: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+    exhausted: "bg-red-500/10 border-red-500/30 text-red-400"
+  };
+
+  const statusDots = { active: "bg-emerald-400 animate-pulse", inactive: "bg-slate-500", expired: "bg-amber-400", exhausted: "bg-red-400" };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-bold text-white">Private Invite Links</h3>
+          <p className="text-sm text-slate-400 mt-1">Generate secret registration links for specific people while main registration stays closed.</p>
+        </div>
+        <Button icon={Plus} onClick={() => setShowCreate(true)}>Create Link</Button>
+      </div>
+
+      {/* Create Form */}
+      {showCreate && (
+        <Card className="border-violet-500/30 bg-violet-500/5">
+          <CardContent className="p-6 space-y-4">
+            <h4 className="text-lg font-bold text-white">New Invite Link</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Label <span className="text-red-400">*</span></label>
+                <input
+                  value={form.label}
+                  onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
+                  placeholder="e.g. Late Registrations - Coaches"
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Link Expires In</label>
+                <select
+                  value={form.expiresIn}
+                  onChange={e => setForm(p => ({ ...p, expiresIn: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+                >
+                  <option value="12h">12 Hours</option>
+                  <option value="24h">24 Hours</option>
+                  <option value="48h">48 Hours (default)</option>
+                  <option value="72h">72 Hours</option>
+                  <option value="168h">1 Week</option>
+                  <option value="custom">Custom Date/Time</option>
+                  <option value="never">Never Expires</option>
+                </select>
+              </div>
+            </div>
+            {form.expiresIn === "custom" && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Custom Expiry</label>
+                <input type="datetime-local" value={form.customExpiry}
+                  onChange={e => setForm(p => ({ ...p, customExpiry: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500" />
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Usage Mode</label>
+              <div className="flex gap-3">
+                {[
+                  { value: "multi", label: "Multi-Use", desc: "Same link for multiple people" },
+                  { value: "single", label: "Single-Use", desc: "Expires after 1 submission" }
+                ].map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => setForm(p => ({ ...p, mode: opt.value, maxUses: opt.value === "single" ? "1" : "" }))}
+                    className={`flex-1 p-3 rounded-xl border text-left transition-all ${form.mode === opt.value ? "border-violet-500 bg-violet-500/10 text-violet-300" : "border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600"}`}
+                  >
+                    <p className="font-semibold text-sm">{opt.label}</p>
+                    <p className="text-xs opacity-70 mt-0.5">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {form.mode === "multi" && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Max Uses <span className="text-slate-500">(optional — leave blank for unlimited)</span></label>
+                <input
+                  type="number" min="1" value={form.maxUses}
+                  onChange={e => setForm(p => ({ ...p, maxUses: e.target.value }))}
+                  placeholder="e.g. 10"
+                  className="w-40 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+                />
+              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <Button onClick={handleCreate} loading={creating} disabled={creating}>Generate Link</Button>
+              <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Links List */}
+      {loading ? (
+        <div className="text-center py-10 text-slate-400">Loading invite links...</div>
+      ) : links.length === 0 ? (
+        <Card className="border-slate-800">
+          <CardContent className="p-12 text-center">
+            <Lock className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+            <p className="text-slate-400 font-medium">No invite links yet</p>
+            <p className="text-slate-600 text-sm mt-1">Create your first private invite link above.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {links.map(link => {
+            const status = getLinkStatus(link);
+            const url = getInviteUrl(link);
+            return (
+              <Card key={link.id} className="border-slate-800 hover:border-slate-700 transition-colors">
+                <CardContent className="p-5">
+                  <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-white font-semibold">{link.label}</span>
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full border ${statusColors[status]}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusDots[status]}`} />
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border ${link.mode === "single" ? "border-blue-500/30 bg-blue-500/10 text-blue-300" : "border-cyan-500/30 bg-cyan-500/10 text-cyan-300"}`}>
+                          {link.mode === "single" ? "Single-Use" : "Multi-Use"}
+                        </span>
+                      </div>
+                      <code className="text-xs text-slate-500 truncate block max-w-md">{url}</code>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                        <span>{link.useCount || 0}{link.maxUses ? `/${link.maxUses}` : ""} uses</span>
+                        {link.expiresAt && (
+                          <span>Expires: {new Date(link.expiresAt).toLocaleString()}</span>
+                        )}
+                        {!link.expiresAt && <span>Never expires</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleCopy(link)}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 text-xs font-medium transition-colors"
+                        title="Copy link"
+                      >
+                        {copiedId === link.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedId === link.id ? "Copied!" : "Copy"}
+                      </button>
+                      <a href={url} target="_blank" rel="noopener noreferrer"
+                        className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                        title="Open link">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        onClick={() => handleToggle(link)}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${link.isActive ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"}`}
+                        title={link.isActive ? "Deactivate" : "Activate"}
+                      >
+                        {link.isActive ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(link)}
+                        className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-red-400 transition-colors"
+                        title="Delete link"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 const Home = lazy(() => import("./pages/public/Home"));
 const Login = lazy(() => import("./pages/public/Login"));
 const Register = lazy(() => import("./pages/public/Register"));
+const InviteRegister = lazy(() => import("./pages/public/InviteRegister"));
 const VerifyAccreditation = lazy(() => import("./pages/public/VerifyAccreditation"));
 const ScannerPage = lazy(() => import("./pages/public/Scanner"));
 
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register/:slug" element={<Register />} />
+              <Route path="/register/:eventSlug/invite/:token" element={<InviteRegister />} />
               <Route path="/verify/:id" element={<VerifyAccreditation />} />
               <Route path="/accreditation/:id" element={<VerifyAccreditation />} />
               <Route path="/scanner" element={<ScannerPage />} />

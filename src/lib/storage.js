@@ -276,25 +276,24 @@ export const AccreditationsAPI = {
 
   getCountsByEventIds: async (eventIds) => {
     if (!eventIds || eventIds.length === 0) return {};
-    const { data, error } = await supabase
-      .from("accreditations")
-      .select("event_id, status")
-      .in("event_id", eventIds)
-      .limit(50000);
-    if (error) {
-      console.error("getCountsByEventIds error:", error);
-      return {};
-    }
+    // Use proper count queries via Supabase head:true — avoids the 1000-row PostgREST default cap
     const counts = {};
-    (data || []).forEach(row => {
-      if (!counts[row.event_id]) {
-        counts[row.event_id] = { total: 0, pending: 0, approved: 0, rejected: 0 };
-      }
-      counts[row.event_id].total++;
-      if (row.status === "pending") counts[row.event_id].pending++;
-      else if (row.status === "approved") counts[row.event_id].approved++;
-      else if (row.status === "rejected") counts[row.event_id].rejected++;
-    });
+    await Promise.all(
+      eventIds.map(async (eventId) => {
+        const [totalRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
+          supabase.from("accreditations").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+          supabase.from("accreditations").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "pending"),
+          supabase.from("accreditations").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "approved"),
+          supabase.from("accreditations").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "rejected")
+        ]);
+        counts[eventId] = {
+          total: totalRes.count || 0,
+          pending: pendingRes.count || 0,
+          approved: approvedRes.count || 0,
+          rejected: rejectedRes.count || 0
+        };
+      })
+    );
     return counts;
   },
 

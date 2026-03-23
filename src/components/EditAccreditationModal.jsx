@@ -106,6 +106,7 @@ export default function EditAccreditationModal({
     role: "",
     email: "",
     photoUrl: null,
+    badgeColor: "#2563eb",
     zoneCodes: []
   });
   const [expiryMode, setExpiryMode] = useState("none");
@@ -130,6 +131,7 @@ export default function EditAccreditationModal({
         role: role,
         email: accreditation.email || "",
         photoUrl: accreditation.photoUrl || null,
+        badgeColor: accreditation.badgeColor || "#2563eb",
         zoneCodes: zc
       });
       setOriginalRole(role);
@@ -504,20 +506,66 @@ export default function EditAccreditationModal({
             required
           />
           {(customRoleMode || (!isKnownRole && formData.role !== "")) && (
-            <div className="space-y-2">
-              <label className="block text-lg font-medium text-slate-300">Custom Role Name</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.role}
-                  onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                  placeholder="e.g. Technical Director"
-                  className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-lg focus:outline-none focus:border-cyan-500"
-                />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-lg font-medium text-slate-300">Custom Role Name</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.role}
+                    onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                    placeholder="e.g. Technical Director"
+                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-lg focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <p className="text-lg text-cyan-400 font-extralight">
+                  Type any role name. This will be saved as-is on the accreditation.
+                </p>
               </div>
-              <p className="text-lg text-cyan-400 font-extralight">
-                Type any role name. This will be saved as-is on the accreditation.
-              </p>
+              <div className="space-y-2 border-t border-slate-700/50 pt-3">
+                <label className="block text-lg font-medium text-slate-300">Custom Role Color</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg shadow-inner overflow-hidden flex-shrink-0 border border-slate-600">
+                    <input
+                      type="color"
+                      value={formData.badgeColor}
+                      onChange={(e) => setFormData(prev => ({ ...prev, badgeColor: e.target.value }))}
+                      className="w-16 h-16 -ml-3 -mt-3 cursor-pointer"
+                      title="Choose Custom Color"
+                    />
+                  </div>
+                  <div className="block">
+                    <input
+                      type="text"
+                      value={formData.badgeColor.toUpperCase()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
+                           setFormData(prev => ({ ...prev, badgeColor: val }));
+                        }
+                      }}
+                      className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1 text-white text-base focus:outline-none focus:border-cyan-500 font-mono w-28 uppercase"
+                      maxLength={7}
+                      placeholder="#HEX"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 ml-2">
+                    {["#2563eb", "#dc2626", "#16a34a", "#ca8a04", "#9333ea", "#0891b2", "#ea580c"].map(preset => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, badgeColor: preset }))}
+                        className="w-6 h-6 rounded border border-slate-600 hover:scale-110 transition-transform shadow-sm"
+                        style={{ backgroundColor: preset }}
+                        title={`Quick Preset: ${preset}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-lg text-cyan-400 font-extralight mt-1">
+                  Select a specific color for this manual role to override the default hue.
+                </p>
+              </div>
             </div>
           )}
           {eventCategories && eventCategories.length > 0 ? (

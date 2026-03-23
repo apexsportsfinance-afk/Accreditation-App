@@ -184,7 +184,10 @@ export const CardInner = memo(function CardInner({ accreditation, event, zones =
   const categoryColor = resolveCategoryColor(accreditation?.role, eventCategories);
   const matchingZone = zones.find(z => z.name?.toLowerCase() === accreditation?.role?.toLowerCase());
   const zoneColor = matchingZone?.color || null;
-  const resolvedColor = categoryColor || zoneColor || null;
+  
+  // Custom manual roles won't match a category, so we consume the user-entered badgeColor.
+  // Standard roles will successfully resolve a categoryColor over the manual variable.
+  const resolvedColor = categoryColor || zoneColor || accreditation?.badgeColor || null;
   const roleData = resolvedColor ? { bg: "", hex: resolvedColor } : getRoleData(accreditation?.role);
   const finalColor = resolvedColor || roleData.hex;
 
